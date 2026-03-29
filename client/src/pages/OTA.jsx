@@ -10,7 +10,7 @@ function fmtSize(bytes) {
 function Spinner() {
   return (
     <div className="flex h-24 items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-slate-200 border-t-emerald-500" />
+      <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-slate-700 border-t-emerald-500" />
     </div>
   );
 }
@@ -30,9 +30,10 @@ async function apiFetch(method, path, body) {
 }
 
 export default function OTA() {
-  const [releases, setReleases] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
+  const [releases, setReleases]       = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState('');
+  const [deviceFirmware, setDeviceFw] = useState(null);
 
   const [version, setVersion]   = useState('');
   const [file, setFile]         = useState(null);
@@ -44,8 +45,12 @@ export default function OTA() {
   async function load() {
     setLoading(true);
     try {
-      const releases = await apiFetch('GET', '/api/ota');
+      const [releases, latest] = await Promise.all([
+        apiFetch('GET', '/api/ota'),
+        apiFetch('GET', '/api/dashboard/latest'),
+      ]);
       setReleases(releases);
+      setDeviceFw(latest?.generation?.firmware ?? null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -133,9 +138,24 @@ export default function OTA() {
     <div className="space-y-8">
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Firmware OTA</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Upload and manage over-the-air firmware releases for ESP32 devices</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Firmware OTA</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Upload and manage over-the-air firmware releases for ESP32 devices</p>
+        </div>
+        {deviceFirmware && (
+          <div className="flex items-center gap-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-4 py-3">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20">
+              <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">Device currently running</div>
+              <div className="text-sm font-mono font-bold text-sky-400">v{deviceFirmware}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Upload form */}
@@ -147,7 +167,7 @@ export default function OTA() {
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Upload New Release</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Upload New Release</h2>
             <p className="text-xs text-slate-400">Select a compiled .bin file — size is auto-detected</p>
           </div>
         </div>
@@ -245,7 +265,7 @@ export default function OTA() {
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Releases</h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Releases</h2>
             <p className="text-xs text-slate-400">{releases.length} release{releases.length !== 1 ? 's' : ''} registered</p>
           </div>
         </div>
@@ -267,12 +287,12 @@ export default function OTA() {
               <div
                 key={r.id}
                 className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between transition-colors ${
-                  r.active ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white hover:bg-slate-50/50'
+                  r.active ? 'border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50'
                 }`}
               >
                 <div className="space-y-1.5 min-w-0">
                   <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-sm font-bold text-slate-900">v{r.version}</span>
+                    <span className="font-mono text-sm font-bold text-slate-900 dark:text-slate-100">v{r.version}</span>
                     {r.active === 1 && (
                       <span className="badge-active">
                         <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" /></svg>
@@ -316,7 +336,7 @@ export default function OTA() {
       </div>
 
       {/* How it works */}
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-5">
         <div className="flex items-start gap-3">
           <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-200 shrink-0 mt-0.5">
             <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">

@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
+import { useTheme } from '../ThemeContext.jsx';
 
 function IconOverview() {
   return (
@@ -38,6 +37,20 @@ function IconFirmware() {
     </svg>
   );
 }
+function IconSun() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+    </svg>
+  );
+}
+function IconMoon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+    </svg>
+  );
+}
 
 const navItems = [
   { to: '/',          label: 'Overview',  Icon: IconOverview  },
@@ -49,17 +62,21 @@ const navItems = [
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-100">
-
+    <div
+      className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950"
+      style={{ backgroundImage: 'var(--page-glow)' }}
+    >
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-      <aside className="flex w-60 shrink-0 flex-col bg-white border-r border-slate-200 shadow-sm">
+      {/*  Light: deep forest green  |  Dark: near-black slate               */}
+      <aside className="flex w-60 shrink-0 flex-col bg-emerald-900 dark:bg-slate-900 border-r border-emerald-950/40 dark:border-slate-800">
 
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
-          <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-100">
-            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 32 32" stroke="currentColor" strokeWidth={1.5}>
+        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10 dark:border-slate-800">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/10 dark:bg-emerald-500/10 border border-white/20 dark:border-emerald-500/20">
+            <svg className="w-5 h-5 text-emerald-200 dark:text-emerald-400" fill="none" viewBox="0 0 32 32" stroke="currentColor" strokeWidth={1.5}>
               <circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none" />
               <path d="M16 13.5 C16 13.5 15 8 12 4 C14 7 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
               <path d="M16 13.5 C16 13.5 11.5 16.5 7 17 C10.5 15.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
@@ -68,8 +85,8 @@ export default function Layout({ children }) {
             </svg>
           </div>
           <div>
-            <div className="text-sm font-bold text-slate-900 leading-tight tracking-tight">Wind Meter</div>
-            <div className="text-xs text-slate-400 mt-0.5">Turbine Monitor</div>
+            <div className="text-sm font-bold text-white leading-tight tracking-tight">Wind Meter</div>
+            <div className="text-xs text-emerald-300/70 dark:text-slate-500 mt-0.5">Turbine Monitor</div>
           </div>
         </div>
 
@@ -81,16 +98,21 @@ export default function Layout({ children }) {
               to={to}
               end={to === '/'}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                `relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'bg-white/15 dark:bg-emerald-500/10 text-white dark:text-emerald-400'
+                    : 'text-emerald-200/80 dark:text-slate-400 hover:bg-white/10 dark:hover:bg-slate-800 hover:text-white dark:hover:text-slate-100'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <span className={isActive ? 'text-emerald-600' : 'text-slate-400'}><Icon /></span>
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-white dark:bg-emerald-400" />
+                  )}
+                  <span className={isActive ? 'text-white dark:text-emerald-400' : 'text-emerald-300/60 dark:text-slate-500'}>
+                    <Icon />
+                  </span>
                   {label}
                 </>
               )}
@@ -99,27 +121,37 @@ export default function Layout({ children }) {
         </nav>
 
         {/* User footer */}
-        <div className="border-t border-slate-100 px-3 py-4">
-          <div className="flex items-center gap-3 px-2 mb-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
+        <div className="border-t border-white/10 dark:border-slate-800 px-3 py-4 space-y-3">
+
+          {/* Theme toggle + user info row */}
+          <div className="flex items-center gap-2 px-1">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 dark:bg-emerald-500/10 border border-white/20 dark:border-emerald-500/20 text-xs font-bold text-white dark:text-emerald-400">
               {user?.username?.[0]?.toUpperCase() ?? 'U'}
             </div>
-            <div className="min-w-0">
-              <div className="text-xs font-medium text-slate-700 truncate">{user?.username}</div>
-              <div className="text-xs text-slate-400">Administrator</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-semibold text-white dark:text-slate-300 truncate">{user?.username}</div>
+              <div className="text-xs text-emerald-300/60 dark:text-slate-500">Administrator</div>
             </div>
+            <button
+              onClick={toggleTheme}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 dark:bg-slate-800 text-emerald-100 dark:text-slate-400 hover:bg-white/20 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors shrink-0"
+            >
+              {isDark ? <IconSun /> : <IconMoon />}
+            </button>
           </div>
+
           <button
             onClick={logout}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+            className="w-full rounded-xl border border-white/15 dark:border-slate-700 bg-white/8 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-emerald-100 dark:text-slate-400 hover:bg-white/15 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors"
           >
             Sign out
           </button>
         </div>
       </aside>
 
-      {/* ── Main content ─────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto bg-slate-100 p-6 lg:p-8">
+      {/* ── Main ─────────────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto p-6 lg:p-8">
         {children}
       </main>
     </div>

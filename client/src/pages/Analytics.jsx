@@ -81,8 +81,8 @@ function DateRangeBar({ preset, customFrom, customTo, onChange }) {
             onClick={() => onChange({ preset: p.id })}
             className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
               preset === p.id
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
             }`}
           >
             {p.label}
@@ -97,14 +97,14 @@ function DateRangeBar({ preset, customFrom, customTo, onChange }) {
             type="date"
             value={customFrom}
             onChange={e => onChange({ customFrom: e.target.value })}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 shadow-sm focus:border-emerald-600 dark:focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
           <span className="text-xs text-slate-400">to</span>
           <input
             type="date"
             value={customTo}
             onChange={e => onChange({ customTo: e.target.value })}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 shadow-sm focus:border-emerald-600 dark:focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
         </div>
       )}
@@ -117,7 +117,7 @@ function DateRangeBar({ preset, customFrom, customTo, onChange }) {
 function Spinner() {
   return (
     <div className="flex h-52 items-center justify-center">
-      <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-slate-200 border-t-emerald-500" />
+      <div className="h-7 w-7 animate-spin rounded-full border-[3px] border-slate-200 dark:border-slate-700 border-t-emerald-600 dark:border-t-emerald-500" />
     </div>
   );
 }
@@ -136,13 +136,13 @@ function EmptyChart() {
 function ChartTooltip({ active, payload, label, unit }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl bg-white border border-slate-200 shadow-lg p-3 text-xs">
+    <div className="rounded-xl bg-slate-900 border border-slate-700 shadow-xl p-3 text-xs">
       <div className="font-semibold text-slate-500 mb-1.5">{label}</div>
       {payload.map(p => (
         <div key={p.dataKey} className="flex items-center gap-2 mb-1 last:mb-0">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
           <span className="text-slate-500">{p.name}:</span>
-          <span className="font-bold text-slate-900">{p.value != null ? p.value : '—'} {unit || ''}</span>
+          <span className="font-bold text-slate-100">{p.value != null ? p.value : '—'} {unit || ''}</span>
         </div>
       ))}
     </div>
@@ -225,7 +225,7 @@ function CombinedTab({ range }) {
       <div className="page-card">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Power Output vs. Load</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Power Output vs. Load</h3>
             <p className="text-xs text-slate-400 mt-0.5">kW over selected period</p>
           </div>
           <div className="flex items-center gap-4">
@@ -236,9 +236,9 @@ function CombinedTab({ range }) {
         {chart.length === 0 ? <EmptyChart /> : (
           <ResponsiveContainer width="100%" height={320}>
             <LineChart data={chart} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} unit=" kW" width={70} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" kW" width={70} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltip unit="kW" />} />
               <Line type="monotone" dataKey="generation"  name="Generation"  stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
               <Line type="monotone" dataKey="consumption" name="Consumption" stroke="#f59e0b" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
@@ -251,14 +251,14 @@ function CombinedTab({ range }) {
       {netData.length > 0 && (
         <div className="page-card">
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-slate-900">Net Power Balance</h3>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Net Power Balance</h3>
             <p className="text-xs text-slate-400 mt-0.5">Generation − Consumption &mdash; positive = exporting, negative = importing (kW)</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={netData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} unit=" kW" width={70} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" kW" width={70} axisLine={false} tickLine={false} />
               <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1.5} />
               <Tooltip content={<ChartTooltip unit="kW" />} />
               <Line type="monotone" dataKey="net" name="Net" stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
@@ -326,7 +326,7 @@ function IndividualTab({ range }) {
         ].map(s => (
           <button key={s.id} onClick={() => handleSource(s.id)}
             className={`rounded-xl px-4 py-2 text-sm font-semibold transition-all shadow-sm ${
-              source === s.id ? s.active : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              source === s.id ? s.active : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}>
             {s.label}
           </button>
@@ -339,7 +339,7 @@ function IndividualTab({ range }) {
           <button key={p.key} onClick={() => setParamKey(p.key)}
             style={paramKey === p.key ? { backgroundColor: p.color + '15', borderColor: p.color, color: p.color } : {}}
             className={`rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              paramKey === p.key ? '' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              paramKey === p.key ? '' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}>
             {p.label} <span className="font-normal opacity-60 ml-0.5">{p.unit}</span>
           </button>
@@ -352,7 +352,7 @@ function IndividualTab({ range }) {
           <div>
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: paramMeta.color }} />
-              <h3 className="text-sm font-bold text-slate-900">{paramMeta.label}</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{paramMeta.label}</h3>
               <span className="text-xs text-slate-400">{paramMeta.unit}</span>
             </div>
             <p className="text-xs text-slate-400 mt-1 ml-5">{paramMeta.desc}</p>
@@ -366,7 +366,7 @@ function IndividualTab({ range }) {
               ].map(({ label, val }) => (
                 <div key={label}>
                   <div className="text-xs text-slate-400">{label}</div>
-                  <div className="text-sm font-bold text-slate-900 tabular-nums">{val.toFixed(2)}</div>
+                  <div className="text-sm font-bold text-slate-900 dark:text-slate-100 tabular-nums">{val.toFixed(2)}</div>
                   <div className="text-xs text-slate-400">{paramMeta.unit}</div>
                 </div>
               ))}
@@ -377,9 +377,9 @@ function IndividualTab({ range }) {
         {chartData.length === 0 ? <EmptyChart /> : (
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} unit={` ${paramMeta.unit}`} width={72}
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit={` ${paramMeta.unit}`} width={72}
                 domain={[Math.max(0, minVal - padding), maxVal + padding]} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltip unit={paramMeta.unit} />} />
               <Line type="monotone" dataKey="value" name={paramMeta.label} stroke={paramMeta.color}
@@ -402,8 +402,8 @@ function IndividualTab({ range }) {
             const pd     = (mx - mn) * 0.15 || 0.5;
             return (
               <button key={p.key} onClick={() => setParamKey(p.key)}
-                className="text-left rounded-2xl border p-4 transition-all hover:shadow-md bg-white"
-                style={paramKey === p.key ? { borderColor: p.color, backgroundColor: p.color + '08' } : { borderColor: '#e2e8f0' }}>
+                className="text-left rounded-2xl border p-4 transition-all hover:shadow-md bg-white dark:bg-slate-900"
+                style={paramKey === p.key ? { borderColor: p.color, backgroundColor: p.color + '18' } : {}}>
                 <div className="flex items-baseline justify-between mb-1">
                   <span className="text-xs font-semibold text-slate-500">{p.label}</span>
                   <span className="text-xs text-slate-400">{p.unit}</span>
@@ -437,17 +437,17 @@ function Pagination({ page, pages, onPage }) {
       <span className="text-xs text-slate-400">Page {page} of {pages}</span>
       <div className="flex items-center gap-1">
         <button onClick={() => onPage(page - 1)} disabled={page <= 1}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed">
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>Prev
         </button>
         {nums.map(n => (
           <button key={n} onClick={() => onPage(n)}
-            className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${n === page ? 'bg-emerald-600 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
+            className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${n === page ? 'bg-emerald-600 text-white' : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
             {n}
           </button>
         ))}
         <button onClick={() => onPage(page + 1)} disabled={page >= pages}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed">
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed">
           Next<svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
         </button>
       </div>
@@ -470,7 +470,7 @@ function GenTable({ range, page, onPage }) {
     <section>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Generation Records</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Generation Records</h3>
           {data && <p className="text-xs text-slate-400 mt-0.5">{data.total.toLocaleString()} records</p>}
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-medium text-emerald-700">
@@ -479,7 +479,7 @@ function GenTable({ range, page, onPage }) {
       </div>
       {loading ? <Spinner /> : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
@@ -530,7 +530,7 @@ function ConTable({ range, page, onPage }) {
     <section>
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">Consumption Records</h3>
+          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Consumption Records</h3>
           {data && <p className="text-xs text-slate-400 mt-0.5">{data.total.toLocaleString()} records</p>}
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-medium text-amber-700">
@@ -539,7 +539,7 @@ function ConTable({ range, page, onPage }) {
       </div>
       {loading ? <Spinner /> : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">

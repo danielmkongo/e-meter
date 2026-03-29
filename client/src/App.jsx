@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext.jsx';
+import { ThemeProvider } from './ThemeContext.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Overview from './pages/Overview.jsx';
@@ -13,8 +14,8 @@ function ProtectedRoutes() {
 
   if (user === undefined) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 border-t-emerald-500" />
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-slate-200 dark:border-slate-700 border-t-emerald-700 dark:border-t-emerald-500" />
       </div>
     );
   }
@@ -29,7 +30,7 @@ function ProtectedRoutes() {
         <Route path="/energy"     element={<Energy />} />
         <Route path="/history"    element={<History />} />
         <Route path="/ota"        element={<OTA />} />
-        <Route path="*"        element={<Navigate to="/" replace />} />
+        <Route path="*"           element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
   );
@@ -37,14 +38,16 @@ function ProtectedRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginRoute />} />
-          <Route path="/*"     element={<ProtectedRoutes />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginRoute />} />
+            <Route path="/*"     element={<ProtectedRoutes />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

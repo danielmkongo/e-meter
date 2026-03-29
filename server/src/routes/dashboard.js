@@ -42,7 +42,11 @@ export function dashboardRouter(db) {
       if (active) {
         const fwUrl = active.url.startsWith('http')
           ? active.url
-          : `${req.protocol}://${req.get('host')}${active.url}`;
+          : (() => {
+              const host  = req.get('x-forwarded-host') || req.get('host');
+              const proto = req.get('x-forwarded-proto') || req.protocol;
+              return `${proto}://${host}${active.url}`;
+            })();
         return res.json({ fw_url: fwUrl, fw_size: active.size_bytes });
       }
       res.json({});

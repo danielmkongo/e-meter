@@ -5,6 +5,10 @@
       "destination": "http://45.79.206.183:6001/api/:path*"
     },
     {
+      "source": "/firmware/:path*",
+      "destination": "http://45.79.206.183:6001/firmware/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
