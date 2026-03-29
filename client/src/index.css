@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-100 text-slate-900 antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+}
+
+@layer components {
+  .stat-card {
+    @apply bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .page-card {
+    @apply bg-white rounded-2xl border border-slate-200 p-6 shadow-sm;
+  }
+
+  /* Inputs sit in slate-100 so they look "recessed" against white cards */
+  .form-input {
+    @apply w-full rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-900
+           placeholder-slate-400
+           focus:bg-white focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20
+           transition;
+  }
+
+  .btn-primary {
+    @apply rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white
+           hover:bg-emerald-500 active:bg-emerald-700
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors shadow-sm;
+  }
+
+  /* Slate-100 background gives secondary buttons visual weight without pure white */
+  .btn-secondary {
+    @apply rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700
+           hover:bg-slate-200 active:bg-slate-300
+           disabled:opacity-40
+           transition-colors;
+  }
+
+  .badge-active {
+    @apply inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700;
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-widest text-slate-400 mb-3;
+  }
+
+}
