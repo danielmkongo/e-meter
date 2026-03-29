@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../AuthContext.jsx';
 import { useTheme } from '../ThemeContext.jsx';
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
 
 function IconOverview() {
   return (
@@ -51,6 +54,20 @@ function IconMoon() {
     </svg>
   );
 }
+function IconMenu() {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+    </svg>
+  );
+}
+function IconX() {
+  return (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
 
 const navItems = [
   { to: '/',          label: 'Overview',  Icon: IconOverview  },
@@ -60,100 +77,183 @@ const navItems = [
   { to: '/ota',       label: 'Firmware',  Icon: IconFirmware  },
 ];
 
-export default function Layout({ children }) {
-  const { user, logout } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
-
+function WindLogo() {
   return (
-    <div
-      className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950"
-      style={{ backgroundImage: 'var(--page-glow)' }}
-    >
-      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-      {/*  Light: deep forest green  |  Dark: near-black slate               */}
-      <aside className="flex w-60 shrink-0 flex-col bg-emerald-900 dark:bg-slate-900 border-r border-emerald-950/40 dark:border-slate-800">
+    <svg className="w-5 h-5 text-emerald-200 dark:text-emerald-400" fill="none" viewBox="0 0 32 32" stroke="currentColor" strokeWidth={1.5}>
+      <circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none" />
+      <path d="M16 13.5 C16 13.5 15 8 12 4 C14 7 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
+      <path d="M16 13.5 C16 13.5 11.5 16.5 7 17 C10.5 15.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
+      <path d="M16 13.5 C16 13.5 20.5 10.5 25 11 C21.5 12.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
+      <line x1="16" y1="18.5" x2="16" y2="28" strokeLinecap="round" />
+    </svg>
+  );
+}
 
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10 dark:border-slate-800">
+function SidebarContent({ user, logout, isDark, toggleTheme, onClose }) {
+  return (
+    <>
+      {/* Logo */}
+      <div className="flex items-center justify-between px-5 py-5 border-b border-white/10 dark:border-slate-800 shrink-0">
+        <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/10 dark:bg-emerald-500/10 border border-white/20 dark:border-emerald-500/20">
-            <svg className="w-5 h-5 text-emerald-200 dark:text-emerald-400" fill="none" viewBox="0 0 32 32" stroke="currentColor" strokeWidth={1.5}>
-              <circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none" />
-              <path d="M16 13.5 C16 13.5 15 8 12 4 C14 7 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
-              <path d="M16 13.5 C16 13.5 11.5 16.5 7 17 C10.5 15.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
-              <path d="M16 13.5 C16 13.5 20.5 10.5 25 11 C21.5 12.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
-              <line x1="16" y1="18.5" x2="16" y2="28" strokeLinecap="round" />
-            </svg>
+            <WindLogo />
           </div>
           <div>
             <div className="text-sm font-bold text-white leading-tight tracking-tight">Wind Meter</div>
             <div className="text-xs text-emerald-300/70 dark:text-slate-500 mt-0.5">Turbine Monitor</div>
           </div>
         </div>
+        {/* Close button — mobile only */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden flex items-center justify-center w-8 h-8 rounded-lg text-emerald-200 dark:text-slate-400 hover:bg-white/10 dark:hover:bg-slate-800 transition-colors"
+          >
+            <IconX />
+          </button>
+        )}
+      </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-white/15 dark:bg-emerald-500/10 text-white dark:text-emerald-400'
-                    : 'text-emerald-200/80 dark:text-slate-400 hover:bg-white/10 dark:hover:bg-slate-800 hover:text-white dark:hover:text-slate-100'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-white dark:bg-emerald-400" />
-                  )}
-                  <span className={isActive ? 'text-white dark:text-emerald-400' : 'text-emerald-300/60 dark:text-slate-500'}>
-                    <Icon />
-                  </span>
-                  {label}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {navItems.map(({ to, label, Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            onClick={onClose}
+            className={({ isActive }) =>
+              `relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-white/15 dark:bg-emerald-500/10 text-white dark:text-emerald-400'
+                  : 'text-emerald-200/80 dark:text-slate-400 hover:bg-white/10 dark:hover:bg-slate-800 hover:text-white dark:hover:text-slate-100'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-white dark:bg-emerald-400" />
+                )}
+                <span className={isActive ? 'text-white dark:text-emerald-400' : 'text-emerald-300/60 dark:text-slate-500'}>
+                  <Icon />
+                </span>
+                {label}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
 
-        {/* User footer */}
-        <div className="border-t border-white/10 dark:border-slate-800 px-3 py-4 space-y-3">
+      {/* Footer */}
+      <div className="border-t border-white/10 dark:border-slate-800 px-3 py-4 space-y-3 shrink-0">
+        <div className="flex items-center gap-2 px-1">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 dark:bg-emerald-500/10 border border-white/20 dark:border-emerald-500/20 text-xs font-bold text-white dark:text-emerald-400">
+            {user?.username?.[0]?.toUpperCase() ?? 'U'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-semibold text-white dark:text-slate-300 truncate">{user?.username}</div>
+            <div className="text-xs text-emerald-300/60 dark:text-slate-500">Administrator</div>
+          </div>
+          <button
+            onClick={toggleTheme}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 dark:bg-slate-800 text-emerald-100 dark:text-slate-400 hover:bg-white/20 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors shrink-0"
+          >
+            {isDark ? <IconSun /> : <IconMoon />}
+          </button>
+        </div>
+        <button
+          onClick={logout}
+          className="w-full rounded-xl border border-white/15 dark:border-slate-700 bg-white/8 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-emerald-100 dark:text-slate-400 hover:bg-white/15 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors"
+        >
+          Sign out
+        </button>
+      </div>
+    </>
+  );
+}
 
-          {/* Theme toggle + user info row */}
-          <div className="flex items-center gap-2 px-1">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 dark:bg-emerald-500/10 border border-white/20 dark:border-emerald-500/20 text-xs font-bold text-white dark:text-emerald-400">
-              {user?.username?.[0]?.toUpperCase() ?? 'U'}
+export default function Layout({ children }) {
+  const { user, logout }        = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const closeSidebar = () => setSidebarOpen(false);
+
+  const sidebarBg = 'bg-emerald-900 dark:bg-slate-900 border-r border-emerald-950/40 dark:border-slate-800';
+
+  return (
+    <div
+      className="flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950"
+      style={{ backgroundImage: 'var(--page-glow)' }}
+    >
+      {/* ── Mobile overlay backdrop ──────────────────────────────────────── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={closeSidebar}
+        />
+      )}
+
+      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
+      {/* Mobile: fixed overlay; Desktop: static in-flow */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 flex flex-col w-64
+          transition-transform duration-200 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:static lg:w-60 lg:translate-x-0 lg:transition-none lg:z-auto
+          ${sidebarBg}
+        `}
+      >
+        <SidebarContent
+          user={user}
+          logout={logout}
+          isDark={isDark}
+          toggleTheme={toggleTheme}
+          onClose={closeSidebar}
+        />
+      </aside>
+
+      {/* ── Content area ─────────────────────────────────────────────────── */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+        {/* Mobile top bar */}
+        <header className="lg:hidden flex items-center gap-3 h-14 px-4 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            <IconMenu />
+          </button>
+
+          <div className="flex items-center gap-2.5 flex-1">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-700 dark:bg-emerald-500/10">
+              <svg className="w-4 h-4 text-white dark:text-emerald-400" fill="none" viewBox="0 0 32 32" stroke="currentColor" strokeWidth={1.5}>
+                <circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none" />
+                <path d="M16 13.5 C16 13.5 15 8 12 4 C14 7 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
+                <path d="M16 13.5 C16 13.5 11.5 16.5 7 17 C10.5 15.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
+                <path d="M16 13.5 C16 13.5 20.5 10.5 25 11 C21.5 12.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
+                <line x1="16" y1="18.5" x2="16" y2="28" strokeLinecap="round" />
+              </svg>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-semibold text-white dark:text-slate-300 truncate">{user?.username}</div>
-              <div className="text-xs text-emerald-300/60 dark:text-slate-500">Administrator</div>
-            </div>
-            <button
-              onClick={toggleTheme}
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 dark:bg-slate-800 text-emerald-100 dark:text-slate-400 hover:bg-white/20 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors shrink-0"
-            >
-              {isDark ? <IconSun /> : <IconMoon />}
-            </button>
+            <span className="text-sm font-bold text-slate-900 dark:text-slate-100 tracking-tight">Wind Meter</span>
           </div>
 
           <button
-            onClick={logout}
-            className="w-full rounded-xl border border-white/15 dark:border-slate-700 bg-white/8 dark:bg-slate-800 px-3 py-2 text-xs font-medium text-emerald-100 dark:text-slate-400 hover:bg-white/15 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors"
+            onClick={toggleTheme}
+            className="flex items-center justify-center w-9 h-9 rounded-xl text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
-            Sign out
+            {isDark ? <IconSun /> : <IconMoon />}
           </button>
-        </div>
-      </aside>
+        </header>
 
-      {/* ── Main ─────────────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-        {children}
-      </main>
+        {/* Main */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

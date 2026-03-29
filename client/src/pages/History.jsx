@@ -117,19 +117,19 @@ function GenTable({ page, onPage }) {
               <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
                 {data?.rows.map((r, i) => (
                   <tr key={r.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30 dark:bg-slate-800/20'}`}>
-                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700">{toEAT(r.timestamp)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">{toEAT(r.timestamp)}</td>
                     <td className="px-4 py-3">
-                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600 font-mono text-xs">{r.firmware}</span>
+                      <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-slate-600 dark:text-slate-300 font-mono text-xs">{r.firmware}</span>
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.voltage.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.current.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.rpm.toFixed(0)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.wind_speed.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.frequency.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-600 tabular-nums">{r.power.toFixed(3)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.energy.toFixed(3)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.temperature.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.humidity.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.voltage.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.current.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.rpm.toFixed(0)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.wind_speed.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.frequency.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{r.power.toFixed(3)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.energy.toFixed(3)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.temperature.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.humidity.toFixed(1)}</td>
                   </tr>
                 ))}
                 {data?.rows.length === 0 && (
@@ -195,11 +195,11 @@ function ConTable({ page, onPage }) {
               <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
                 {data?.rows.map((r, i) => (
                   <tr key={r.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30 dark:bg-slate-800/20'}`}>
-                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700">{toEAT(r.timestamp)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.voltage.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.current.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-amber-600 tabular-nums">{r.power.toFixed(3)}</td>
-                    <td className="px-4 py-3 text-right text-slate-600 tabular-nums">{r.energy.toFixed(3)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">{toEAT(r.timestamp)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.voltage.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.current.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{r.power.toFixed(3)}</td>
+                    <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.energy.toFixed(3)}</td>
                   </tr>
                 ))}
                 {data?.rows.length === 0 && (
