@@ -6,15 +6,15 @@ export function authRouter(db) {
   const router = Router();
 
   router.post('/login', (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Email and password required' });
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
     if (!user || !bcrypt.compareSync(password, user.password_hash)) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '7d' });
     const isProd = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
       httpOnly: true,
@@ -22,7 +22,7 @@ export function authRouter(db) {
       secure: isProd,
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    res.json({ email: user.email });
+    res.json({ username: user.username });
   });
 
   router.post('/logout', (req, res) => {
@@ -35,7 +35,7 @@ export function authRouter(db) {
     if (!token) return res.status(401).json({ error: 'Not authenticated' });
     try {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
-      res.json({ id: payload.id, email: payload.email });
+      res.json({ id: payload.id, username: payload.username });
     } catch {
       res.status(401).json({ error: 'Invalid token' });
     }

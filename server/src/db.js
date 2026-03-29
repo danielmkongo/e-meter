@@ -54,7 +54,7 @@ export function initDb(dbPath) {
 
     CREATE TABLE IF NOT EXISTS users (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
-      email         TEXT    NOT NULL UNIQUE,
+      username      TEXT    NOT NULL UNIQUE,
       password_hash TEXT    NOT NULL
     );
   `);
@@ -62,9 +62,9 @@ export function initDb(dbPath) {
   // Seed default admin if users table is empty
   const userCount = db.prepare('SELECT COUNT(*) as cnt FROM users').get();
   if (userCount.cnt === 0) {
-    const hash = bcrypt.hashSync('admin1234', 10);
-    db.prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)').run('admin@emeter.local', hash);
-    console.log('Seeded default admin: admin@emeter.local / admin1234');
+    const hash = bcrypt.hashSync('wind@2026', 10);
+    db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)').run('Kirumbi', hash);
+    console.log('Seeded default admin: Kirumbi / wind@2026');
   }
 
   return db;

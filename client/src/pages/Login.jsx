@@ -3,7 +3,7 @@ import { useAuth } from '../AuthContext.jsx';
 
 export default function Login() {
   const { login } = useAuth();
-  const [email, setEmail]       = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
@@ -13,7 +13,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      await login(username, password);
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -44,15 +44,15 @@ export default function Login() {
         <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Username</label>
               <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
                 required
                 autoFocus
                 className="form-input"
-                placeholder="admin@emeter.local"
+                placeholder="Kirumbi"
               />
             </div>
 

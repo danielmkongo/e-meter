@@ -102,10 +102,10 @@ export default function Layout({ children }) {
         <div className="border-t border-slate-100 px-3 py-4">
           <div className="flex items-center gap-3 px-2 mb-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700">
-              {user?.email?.[0]?.toUpperCase() ?? 'U'}
+              {user?.username?.[0]?.toUpperCase() ?? 'U'}
             </div>
             <div className="min-w-0">
-              <div className="text-xs font-medium text-slate-700 truncate">{user?.email}</div>
+              <div className="text-xs font-medium text-slate-700 truncate">{user?.username}</div>
               <div className="text-xs text-slate-400">Administrator</div>
             </div>
           </div>
