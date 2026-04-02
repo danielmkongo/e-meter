@@ -10,6 +10,12 @@ function toEAT(isoStr) {
   return eat.toISOString().replace('T', ' ').slice(0, 16);
 }
 
+// SQLite datetime('now') returns 'YYYY-MM-DD HH:MM:SS' (UTC, no Z) — normalise before converting
+function toEATReceived(sqliteStr) {
+  if (!sqliteStr) return '—';
+  return toEAT(sqliteStr.replace(' ', 'T') + 'Z');
+}
+
 function Spinner() {
   return (
     <div className="flex h-24 items-center justify-center">
@@ -76,6 +82,7 @@ function GenTable({ page, onPage }) {
 
   const headers = [
     { label: 'Timestamp (EAT)', cls: 'w-40' },
+    { label: 'Received (EAT)',  cls: 'w-40' },
     { label: 'Firmware',        cls: 'w-24' },
     { label: 'V (V)',           cls: 'text-right' },
     { label: 'I (A)',           cls: 'text-right' },
@@ -118,6 +125,7 @@ function GenTable({ page, onPage }) {
                 {data?.rows.map((r, i) => (
                   <tr key={r.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30 dark:bg-slate-800/20'}`}>
                     <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">{toEAT(r.timestamp)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{toEATReceived(r.received_at)}</td>
                     <td className="px-4 py-3">
                       <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-slate-600 dark:text-slate-300 font-mono text-xs">{r.firmware}</span>
                     </td>
@@ -134,7 +142,7 @@ function GenTable({ page, onPage }) {
                 ))}
                 {data?.rows.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-10 text-center text-slate-400">No records found</td>
+                    <td colSpan={12} className="px-4 py-10 text-center text-slate-400">No records found</td>
                   </tr>
                 )}
               </tbody>
@@ -160,6 +168,7 @@ function ConTable({ page, onPage }) {
 
   const headers = [
     { label: 'Timestamp (EAT)', cls: 'w-40' },
+    { label: 'Received (EAT)',  cls: 'w-40' },
     { label: 'V (V)',  cls: 'text-right' },
     { label: 'I (A)',  cls: 'text-right' },
     { label: 'kW',     cls: 'text-right' },
@@ -196,6 +205,7 @@ function ConTable({ page, onPage }) {
                 {data?.rows.map((r, i) => (
                   <tr key={r.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30 dark:bg-slate-800/20'}`}>
                     <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">{toEAT(r.timestamp)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{toEATReceived(r.received_at)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.voltage.toFixed(1)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.current.toFixed(2)}</td>
                     <td className="px-4 py-3 text-right font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{r.power.toFixed(3)}</td>
@@ -204,7 +214,7 @@ function ConTable({ page, onPage }) {
                 ))}
                 {data?.rows.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-slate-400">No records found</td>
+                    <td colSpan={6} className="px-4 py-10 text-center text-slate-400">No records found</td>
                   </tr>
                 )}
               </tbody>

@@ -142,7 +142,7 @@ function ChartTooltip({ active, payload, label, unit }) {
         <div key={p.dataKey} className="flex items-center gap-2 mb-1 last:mb-0">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
           <span className="text-slate-500">{p.name}:</span>
-          <span className="font-bold text-slate-100">{p.value != null ? p.value : '—'} {unit || ''}</span>
+          <span className="font-bold text-slate-100">{p.value != null ? p.value : '—'}{p.unit || (unit ? ` ${unit}` : '')}</span>
         </div>
       ))}
     </div>
@@ -273,11 +273,11 @@ function CombinedTab({ range }) {
 // ── Individual tab ────────────────────────────────────────────────────────────
 
 function IndividualTab({ range }) {
-  const [source,   setSource]   = useState('generation');
-  const [paramKey, setParamKey] = useState('power');
-  const [genData,  setGenData]  = useState(null);
-  const [conData,  setConData]  = useState(null);
-  const [loading,  setLoading]  = useState(true);
+  const [source,       setSource]       = useState('generation');
+  const [selectedKeys, setSelectedKeys] = useState(['power']);
+  const [genData,      setGenData]      = useState(null);
+  const [conData,      setConData]      = useState(null);
+  const [loading,      setLoading]      = useState(true);
   const multiDay = isMultiDay(range);
 
   useEffect(() => {
@@ -291,27 +291,45 @@ function IndividualTab({ range }) {
     }).finally(() => setLoading(false));
   }, [range, multiDay]);
 
-  const params    = source === 'generation' ? GEN_PARAMS : CON_PARAMS;
-  const rawData   = source === 'generation' ? genData  : conData;
-  const paramMeta = params.find(p => p.key === paramKey) || params[0];
+  const params  = source === 'generation' ? GEN_PARAMS : CON_PARAMS;
+  const rawData = source === 'generation' ? genData : conData;
 
   function handleSource(s) {
     setSource(s);
     const newParams = s === 'generation' ? GEN_PARAMS : CON_PARAMS;
-    if (!newParams.find(p => p.key === paramKey)) setParamKey(newParams[0].key);
+    setSelectedKeys([newParams[0].key]);
   }
 
+  function toggleParam(key) {
+    setSelectedKeys(prev =>
+      prev.includes(key)
+        ? prev.length > 1 ? prev.filter(k => k !== key) : prev
+        : [...prev, key]
+    );
+  }
+
+  const selectedMetas = params.filter(p => selectedKeys.includes(p.key));
+
   const chartData = rawData
-    ? rawData.map(r => ({
-        label: r.label,
-        value: r[paramMeta?.key] != null ? +Number(r[paramMeta.key]).toFixed(4) : null,
-      }))
+    ? rawData.map(r => {
+        const pt = { label: r.label };
+        for (const meta of selectedMetas) {
+          pt[meta.key] = r[meta.key] != null ? +Number(r[meta.key]).toFixed(4) : null;
+        }
+        return pt;
+      })
     : [];
 
-  const validValues = chartData.map(d => d.value).filter(v => v != null);
-  const minVal   = validValues.length ? Math.min(...validValues) : 0;
-  const maxVal   = validValues.length ? Math.max(...validValues) : 1;
-  const padding  = (maxVal - minVal) * 0.1 || 0.5;
+  const allValues = selectedMetas.flatMap(meta =>
+    chartData.map(d => d[meta.key]).filter(v => v != null)
+  );
+  const minVal  = allValues.length ? Math.min(...allValues) : 0;
+  const maxVal  = allValues.length ? Math.max(...allValues) : 1;
+  const padding = (maxVal - minVal) * 0.1 || 0.5;
+
+  // Y-axis label: shared unit if all selected params use the same unit, else blank
+  const units      = [...new Set(selectedMetas.map(m => m.unit))];
+  const sharedUnit = units.length === 1 ? units[0] : '';
 
   if (loading) return <Spinner />;
 
@@ -333,41 +351,47 @@ function IndividualTab({ range }) {
         ))}
       </div>
 
-      {/* Parameter pills */}
+      {/* Parameter pills — click to toggle; at least one stays selected */}
       <div className="flex flex-wrap gap-2">
-        {params.map(p => (
-          <button key={p.key} onClick={() => setParamKey(p.key)}
-            style={paramKey === p.key ? { backgroundColor: p.color + '15', borderColor: p.color, color: p.color } : {}}
-            className={`rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              paramKey === p.key ? '' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}>
-            {p.label} <span className="font-normal opacity-60 ml-0.5">{p.unit}</span>
-          </button>
-        ))}
+        {params.map(p => {
+          const active = selectedKeys.includes(p.key);
+          return (
+            <button key={p.key} onClick={() => toggleParam(p.key)}
+              style={active ? { backgroundColor: p.color + '15', borderColor: p.color, color: p.color } : {}}
+              className={`rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                active ? '' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}>
+              {p.label} <span className="font-normal opacity-60 ml-0.5">{p.unit}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Main chart */}
       <div className="page-card">
         <div className="flex items-start justify-between mb-6">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: paramMeta.color }} />
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{paramMeta.label}</h3>
-              <span className="text-xs text-slate-400">{paramMeta.unit}</span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1 ml-5">{paramMeta.desc}</p>
+          {/* Legend */}
+          <div className="flex flex-wrap gap-3">
+            {selectedMetas.map(meta => (
+              <div key={meta.key} className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full inline-block" style={{ backgroundColor: meta.color }} />
+                <span className="text-sm font-bold text-slate-900 dark:text-slate-100">{meta.label}</span>
+                <span className="text-xs text-slate-400">{meta.unit}</span>
+              </div>
+            ))}
           </div>
-          {validValues.length > 0 && (
+          {/* Stats — only shown for a single selected param */}
+          {selectedMetas.length === 1 && allValues.length > 0 && (
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
                 { label: 'Min', val: minVal },
-                { label: 'Avg', val: validValues.reduce((a, b) => a + b, 0) / validValues.length },
+                { label: 'Avg', val: allValues.reduce((a, b) => a + b, 0) / allValues.length },
                 { label: 'Max', val: maxVal },
               ].map(({ label, val }) => (
                 <div key={label}>
                   <div className="text-xs text-slate-400">{label}</div>
                   <div className="text-sm font-bold text-slate-900 dark:text-slate-100 tabular-nums">{val.toFixed(2)}</div>
-                  <div className="text-xs text-slate-400">{paramMeta.unit}</div>
+                  <div className="text-xs text-slate-400">{selectedMetas[0].unit}</div>
                 </div>
               ))}
             </div>
@@ -379,11 +403,14 @@ function IndividualTab({ range }) {
             <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit={` ${paramMeta.unit}`} width={72}
+              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit={sharedUnit ? ` ${sharedUnit}` : ''} width={72}
                 domain={[Math.max(0, minVal - padding), maxVal + padding]} axisLine={false} tickLine={false} />
-              <Tooltip content={<ChartTooltip unit={paramMeta.unit} />} />
-              <Line type="monotone" dataKey="value" name={paramMeta.label} stroke={paramMeta.color}
-                strokeWidth={2.5} dot={false} connectNulls={false} activeDot={{ r: 4, fill: paramMeta.color, strokeWidth: 0 }} />
+              <Tooltip content={<ChartTooltip />} />
+              {selectedMetas.map(meta => (
+                <Line key={meta.key} type="monotone" dataKey={meta.key} name={meta.label} unit={` ${meta.unit}`}
+                  stroke={meta.color} strokeWidth={2.5} dot={false} connectNulls={false}
+                  activeDot={{ r: 4, fill: meta.color, strokeWidth: 0 }} />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -401,9 +428,9 @@ function IndividualTab({ range }) {
             const mx     = vals.length ? Math.max(...vals) : 1;
             const pd     = (mx - mn) * 0.15 || 0.5;
             return (
-              <button key={p.key} onClick={() => setParamKey(p.key)}
+              <button key={p.key} onClick={() => setSelectedKeys([p.key])}
                 className="text-left rounded-2xl border p-4 transition-all hover:shadow-md bg-white dark:bg-slate-900"
-                style={paramKey === p.key ? { borderColor: p.color, backgroundColor: p.color + '18' } : {}}>
+                style={selectedKeys.includes(p.key) ? { borderColor: p.color, backgroundColor: p.color + '18' } : {}}>
                 <div className="flex items-baseline justify-between mb-1">
                   <span className="text-xs font-semibold text-slate-500">{p.label}</span>
                   <span className="text-xs text-slate-400">{p.unit}</span>
