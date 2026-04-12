@@ -170,7 +170,7 @@ const TABS = [
 // ── Parameter definitions ─────────────────────────────────────────────────────
 
 const GEN_PARAMS = [
-  { key: 'power',       label: 'Power',       unit: 'kW',   color: '#10b981', desc: 'Active power output'        },
+  { key: 'power',       label: 'Power',       unit: 'W',    color: '#10b981', desc: 'Active power output'        },
   { key: 'wind_speed',  label: 'Wind Speed',  unit: 'm/s',  color: '#06b6d4', desc: 'Wind speed at turbine'      },
   { key: 'rpm',         label: 'RPM',         unit: 'rpm',  color: '#f97316', desc: 'Rotor revolutions/min'      },
   { key: 'voltage',     label: 'Voltage',     unit: 'V',    color: '#0ea5e9', desc: 'Generator output voltage'   },
@@ -181,7 +181,7 @@ const GEN_PARAMS = [
 ];
 
 const CON_PARAMS = [
-  { key: 'power',   label: 'Power',   unit: 'kW', color: '#f59e0b', desc: 'Active power consumed' },
+  { key: 'power',   label: 'Power',   unit: 'W',  color: '#ef4444', desc: 'Active power consumed' },
   { key: 'voltage', label: 'Voltage', unit: 'V',  color: '#0ea5e9', desc: 'Supply voltage'        },
   { key: 'current', label: 'Current', unit: 'A',  color: '#8b5cf6', desc: 'Load current'          },
 ];
@@ -226,11 +226,11 @@ function CombinedTab({ range }) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Power Output vs. Load</h3>
-            <p className="text-xs text-slate-400 mt-0.5">kW over selected period</p>
+            <p className="text-xs text-slate-400 mt-0.5">W over selected period</p>
           </div>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-0.5 rounded bg-emerald-500 inline-block" />Generation</span>
-            <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-0.5 rounded bg-amber-400 inline-block" />Consumption</span>
+            <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-0.5 rounded bg-red-500 inline-block" />Consumption</span>
           </div>
         </div>
         {chart.length === 0 ? <EmptyChart /> : (
@@ -238,10 +238,10 @@ function CombinedTab({ range }) {
             <LineChart data={chart} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" kW" width={70} axisLine={false} tickLine={false} />
-              <Tooltip content={<ChartTooltip unit="kW" />} />
+              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" W" width={70} axisLine={false} tickLine={false} />
+              <Tooltip content={<ChartTooltip unit="W" />} />
               <Line type="monotone" dataKey="generation"  name="Generation"  stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-              <Line type="monotone" dataKey="consumption" name="Consumption" stroke="#f59e0b" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+              <Line type="monotone" dataKey="consumption" name="Consumption" stroke="#ef4444" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -252,15 +252,15 @@ function CombinedTab({ range }) {
         <div className="page-card">
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Net Power Balance</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Generation − Consumption &mdash; positive = exporting, negative = importing (kW)</p>
+            <p className="text-xs text-slate-400 mt-0.5">Generation − Consumption &mdash; positive = exporting, negative = importing (W)</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={netData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" kW" width={70} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" W" width={70} axisLine={false} tickLine={false} />
               <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1.5} />
-              <Tooltip content={<ChartTooltip unit="kW" />} />
+              <Tooltip content={<ChartTooltip unit="W" />} />
               <Line type="monotone" dataKey="net" name="Net" stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
             </LineChart>
           </ResponsiveContainer>
@@ -510,7 +510,7 @@ function GenTable({ range, page, onPage }) {
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  {['Timestamp (EAT)', 'Firmware', 'V (V)', 'I (A)', 'RPM', 'Wind m/s', 'Hz', 'kW', 'kWh', '°C', 'RH %'].map(h => (
+                  {['Timestamp (EAT)', 'Firmware', 'V (V)', 'I (A)', 'RPM', 'Wind m/s', 'Hz', 'W', 'kWh', '°C', 'RH %'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -570,7 +570,7 @@ function ConTable({ range, page, onPage }) {
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  {['Timestamp (EAT)', 'V (V)', 'I (A)', 'kW', 'kWh'].map(h => (
+                  {['Timestamp (EAT)', 'V (V)', 'I (A)', 'W', 'kWh'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500">{h}</th>
                   ))}
                 </tr>

@@ -18,7 +18,7 @@ function genRows(rows) {
     'RPM':             r.rpm,
     'Wind Speed (m/s)':r.wind_speed,
     'Frequency (Hz)':  r.frequency,
-    'Power (kW)':      r.power,
+    'Power (W)':       r.power,
     'Energy (kWh)':    r.energy,
     'Temperature (°C)':r.temperature,
     'Humidity (%)':    r.humidity,
@@ -30,7 +30,7 @@ function conRows(rows) {
     'Timestamp (EAT)': toEAT(r.timestamp),
     'Voltage (V)':     r.voltage,
     'Current (A)':     r.current,
-    'Power (kW)':      r.power,
+    'Power (W)':       r.power,
     'Energy (kWh)':    r.energy,
   }));
 }

@@ -110,7 +110,7 @@ export default function Energy() {
           </div>
           <div className="flex items-center gap-4 text-xs">
             <span className="flex items-center gap-1.5 text-slate-500"><span className="w-3 h-3 rounded bg-emerald-500 inline-block" />Generation</span>
-            <span className="flex items-center gap-1.5 text-slate-500"><span className="w-3 h-3 rounded bg-amber-400 inline-block" />Consumption</span>
+            <span className="flex items-center gap-1.5 text-slate-500"><span className="w-3 h-3 rounded bg-red-500 inline-block" />Consumption</span>
           </div>
         </div>
 
@@ -138,7 +138,7 @@ export default function Energy() {
               <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" kWh" width={72} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--chart-cursor)' }} />
               <Bar dataKey="generation"  name="Generation"  fill="#059669" radius={[5, 5, 0, 0]} maxBarSize={40} />
-              <Bar dataKey="consumption" name="Consumption" fill="#fbbf24" radius={[5, 5, 0, 0]} maxBarSize={40} />
+              <Bar dataKey="consumption" name="Consumption" fill="#ef4444" radius={[5, 5, 0, 0]} maxBarSize={40} />
             </BarChart>
           </ResponsiveContainer>
         )}

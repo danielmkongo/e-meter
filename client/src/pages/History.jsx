@@ -89,7 +89,7 @@ function GenTable({ page, onPage }) {
     { label: 'RPM',             cls: 'text-right' },
     { label: 'Wind m/s',        cls: 'text-right' },
     { label: 'Hz',              cls: 'text-right' },
-    { label: 'kW',              cls: 'text-right' },
+    { label: 'W',               cls: 'text-right' },
     { label: 'kWh',             cls: 'text-right' },
     { label: '°C',              cls: 'text-right' },
     { label: 'RH %',            cls: 'text-right' },
@@ -171,7 +171,7 @@ function ConTable({ page, onPage }) {
     { label: 'Received (EAT)',  cls: 'w-40' },
     { label: 'V (V)',  cls: 'text-right' },
     { label: 'I (A)',  cls: 'text-right' },
-    { label: 'kW',     cls: 'text-right' },
+    { label: 'W',      cls: 'text-right' },
     { label: 'kWh',    cls: 'text-right' },
   ];
 
