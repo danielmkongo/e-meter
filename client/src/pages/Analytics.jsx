@@ -171,19 +171,19 @@ const TABS = [
 
 const GEN_PARAMS = [
   { key: 'power',       label: 'Power',       unit: 'W',    color: '#10b981', desc: 'Active power output'        },
-  { key: 'wind_speed',  label: 'Wind Speed',  unit: 'm/s',  color: '#06b6d4', desc: 'Wind speed at turbine'      },
+  { key: 'wind_speed',  label: 'Wind Speed',  unit: 'm/s',  color: '#f59e0b', desc: 'Wind speed at turbine'      },
   { key: 'rpm',         label: 'RPM',         unit: 'rpm',  color: '#f97316', desc: 'Rotor revolutions/min'      },
-  { key: 'voltage',     label: 'Voltage',     unit: 'V',    color: '#0ea5e9', desc: 'Generator output voltage'   },
-  { key: 'current',     label: 'Current',     unit: 'A',    color: '#8b5cf6', desc: 'Generator output current'   },
-  { key: 'frequency',   label: 'Frequency',   unit: 'Hz',   color: '#6366f1', desc: 'AC output frequency'        },
-  { key: 'temperature', label: 'Temperature', unit: '°C',   color: '#f43f5e', desc: 'Ambient temperature'        },
-  { key: 'humidity',    label: 'Humidity',    unit: '%',    color: '#3b82f6', desc: 'Relative humidity'          },
+  { key: 'voltage',     label: 'Voltage',     unit: 'V',    color: '#3b82f6', desc: 'Generator output voltage'   },
+  { key: 'current',     label: 'Current',     unit: 'A',    color: '#a855f7', desc: 'Generator output current'   },
+  { key: 'frequency',   label: 'Frequency',   unit: 'Hz',   color: '#ec4899', desc: 'AC output frequency'        },
+  { key: 'temperature', label: 'Temperature', unit: '°C',   color: '#ef4444', desc: 'Ambient temperature'        },
+  { key: 'humidity',    label: 'Humidity',    unit: '%',    color: '#84cc16', desc: 'Relative humidity'          },
 ];
 
 const CON_PARAMS = [
   { key: 'power',   label: 'Power',   unit: 'W',  color: '#ef4444', desc: 'Active power consumed' },
-  { key: 'voltage', label: 'Voltage', unit: 'V',  color: '#0ea5e9', desc: 'Supply voltage'        },
-  { key: 'current', label: 'Current', unit: 'A',  color: '#8b5cf6', desc: 'Load current'          },
+  { key: 'voltage', label: 'Voltage', unit: 'V',  color: '#3b82f6', desc: 'Supply voltage'        },
+  { key: 'current', label: 'Current', unit: 'A',  color: '#a855f7', desc: 'Load current'          },
 ];
 
 // ── Combined tab ──────────────────────────────────────────────────────────────
