@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { exportExcel } from '../exportExcel.js';
 
@@ -69,16 +69,19 @@ function Pagination({ page, pages, onPage }) {
   );
 }
 
-function GenTable({ page, onPage }) {
+function GenTable({ page, onPage, range }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    api.get(`/api/dashboard/history/generation?page=${page}`)
+    const qs = new URLSearchParams({ page });
+    if (range?.from) qs.set('from', range.from);
+    if (range?.to)   qs.set('to',   range.to);
+    api.get(`/api/dashboard/history/generation?${qs}`)
       .then(setData)
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, range]);
 
   const headers = [
     { label: 'Timestamp (EAT)', cls: 'w-40' },
@@ -155,16 +158,19 @@ function GenTable({ page, onPage }) {
   );
 }
 
-function ConTable({ page, onPage }) {
+function ConTable({ page, onPage, range }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    api.get(`/api/dashboard/history/consumption?page=${page}`)
+    const qs = new URLSearchParams({ page });
+    if (range?.from) qs.set('from', range.from);
+    if (range?.to)   qs.set('to',   range.to);
+    api.get(`/api/dashboard/history/consumption?${qs}`)
       .then(setData)
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, range]);
 
   const headers = [
     { label: 'Timestamp (EAT)', cls: 'w-40' },
@@ -250,11 +256,8 @@ function buildRange(preset, from, to) {
   };
 }
 
-function ExportPanel() {
-  const [preset, setPreset] = useState('7d');
-  const [from,   setFrom]   = useState('');
-  const [to,     setTo]     = useState('');
-  const [busy,   setBusy]   = useState(false);
+function ExportPanel({ preset, setPreset, from, setFrom, to, setTo }) {
+  const [busy, setBusy] = useState(false);
 
   const canExport = preset !== 'custom' || from || to;
 
@@ -330,8 +333,20 @@ function ExportPanel() {
 }
 
 export default function History() {
+  const [preset,  setPreset]  = useState('7d');
+  const [from,    setFrom]    = useState('');
+  const [to,      setTo]      = useState('');
   const [genPage, setGenPage] = useState(1);
   const [conPage, setConPage] = useState(1);
+
+  // Recompute range only when the filter controls change
+  const range = useMemo(() => buildRange(preset, from, to), [preset, from, to]);
+
+  // Reset to page 1 whenever the range changes
+  useEffect(() => {
+    setGenPage(1);
+    setConPage(1);
+  }, [range]);
 
   return (
     <div className="space-y-10">
@@ -340,10 +355,14 @@ export default function History() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">History</h1>
           <p className="text-sm text-slate-500 mt-0.5">Paginated records for all sensor readings</p>
         </div>
-        <ExportPanel />
+        <ExportPanel
+          preset={preset} setPreset={setPreset}
+          from={from}     setFrom={setFrom}
+          to={to}         setTo={setTo}
+        />
       </div>
-      <GenTable page={genPage} onPage={setGenPage} />
-      <ConTable page={conPage} onPage={setConPage} />
+      <GenTable page={genPage} onPage={setGenPage} range={range} />
+      <ConTable page={conPage} onPage={setConPage} range={range} />
     </div>
   );
 }
