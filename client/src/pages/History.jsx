@@ -227,13 +227,41 @@ function ConTable({ page, onPage }) {
   );
 }
 
-function ExportAllButton() {
-  const [busy, setBusy] = useState(false);
+const PRESETS = [
+  { id: 'today', label: 'Today'   },
+  { id: '7d',    label: '7 Days'  },
+  { id: '30d',   label: '30 Days' },
+  { id: 'custom',label: 'Custom'  },
+];
+
+function buildRange(preset, from, to) {
+  const now = new Date();
+  if (preset === 'today') {
+    // Start of today in EAT (UTC+3)
+    const eatNow  = new Date(now.getTime() + 3 * 3_600_000);
+    const dateStr = eatNow.toISOString().slice(0, 10);
+    return { from: new Date(dateStr + 'T00:00:00+03:00').toISOString() };
+  }
+  if (preset === '7d')  return { from: new Date(now - 7  * 86_400_000).toISOString() };
+  if (preset === '30d') return { from: new Date(now - 30 * 86_400_000).toISOString() };
+  return {
+    from: from ? new Date(from + 'T00:00:00+03:00').toISOString() : undefined,
+    to:   to   ? new Date(to   + 'T23:59:59+03:00').toISOString() : undefined,
+  };
+}
+
+function ExportPanel() {
+  const [preset, setPreset] = useState('7d');
+  const [from,   setFrom]   = useState('');
+  const [to,     setTo]     = useState('');
+  const [busy,   setBusy]   = useState(false);
+
+  const canExport = preset !== 'custom' || from || to;
 
   async function handleExport() {
     setBusy(true);
     try {
-      await exportExcel({}); // no range = all data
+      await exportExcel(buildRange(preset, from, to));
     } catch (err) {
       alert('Export failed: ' + err.message);
     } finally {
@@ -242,23 +270,62 @@ function ExportAllButton() {
   }
 
   return (
-    <button
-      onClick={handleExport}
-      disabled={busy}
-      className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
-    >
-      {busy ? (
-        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-        </svg>
-      ) : (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-        </svg>
+    <div className="flex flex-col items-end gap-2">
+      {/* Preset pills */}
+      <div className="flex gap-1">
+        {PRESETS.map(p => (
+          <button
+            key={p.id}
+            onClick={() => setPreset(p.id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              preset === p.id
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Custom date inputs */}
+      {preset === 'custom' && (
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={from}
+            onChange={e => setFrom(e.target.value)}
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <span className="text-xs text-slate-400">to</span>
+          <input
+            type="date"
+            value={to}
+            onChange={e => setTo(e.target.value)}
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
       )}
-      {busy ? 'Exporting…' : 'Export all to Excel'}
-    </button>
+
+      {/* Export button */}
+      <button
+        onClick={handleExport}
+        disabled={busy || !canExport}
+        className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-900/60 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+      >
+        {busy ? (
+          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+          </svg>
+        )}
+        {busy ? 'Exporting…' : 'Export to Excel'}
+      </button>
+    </div>
   );
 }
 
@@ -268,12 +335,12 @@ export default function History() {
 
   return (
     <div className="space-y-10">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">History</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">History</h1>
           <p className="text-sm text-slate-500 mt-0.5">Paginated records for all sensor readings</p>
         </div>
-        <ExportAllButton />
+        <ExportPanel />
       </div>
       <GenTable page={genPage} onPage={setGenPage} />
       <ConTable page={conPage} onPage={setConPage} />
