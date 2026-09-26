@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { api } from './api.js';
+import { powerToWatts } from './units.js';
 
 const EAT_OFFSET = 3 * 60;
 
@@ -63,6 +64,6 @@ export async function exportExcel({ from, to } = {}) {
   const url = '/api/dashboard/export' + (qs.toString() ? '?' + qs : '');
 
   const data = await api.get(url);
-  const wb   = buildWorkbook(data.generation, data.consumption);
+  const wb   = buildWorkbook(powerToWatts(data.generation), powerToWatts(data.consumption));
   XLSX.writeFile(wb, fileName(from, to));
 }

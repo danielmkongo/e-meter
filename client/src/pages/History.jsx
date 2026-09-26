@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { exportExcel } from '../exportExcel.js';
+import { powerToWatts, fmtWatts } from '../units.js';
 
 const EAT_OFFSET = 3 * 60;
 function toEAT(isoStr) {
@@ -19,7 +20,7 @@ function toEATReceived(sqliteStr) {
 function Spinner() {
   return (
     <div className="flex h-24 items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-slate-700 border-t-emerald-500" />
+      <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-slate-200 dark:border-slate-700 border-t-emerald-600 dark:border-t-emerald-500" />
     </div>
   );
 }
@@ -34,7 +35,7 @@ function Pagination({ page, pages, onPage }) {
         <button
           onClick={() => onPage(page - 1)}
           disabled={page <= 1}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -48,7 +49,7 @@ function Pagination({ page, pages, onPage }) {
             className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
               n === page
                 ? 'bg-emerald-600 text-white'
-                : 'border border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'
+                : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
             {n}
@@ -57,7 +58,7 @@ function Pagination({ page, pages, onPage }) {
         <button
           onClick={() => onPage(page + 1)}
           disabled={page >= pages}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           Next
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -79,7 +80,7 @@ function GenTable({ page, onPage, range }) {
     if (range?.from) qs.set('from', range.from);
     if (range?.to)   qs.set('to',   range.to);
     api.get(`/api/dashboard/history/generation?${qs}`)
-      .then(setData)
+      .then(d => setData({ ...d, rows: powerToWatts(d.rows) }))
       .finally(() => setLoading(false));
   }, [page, range]);
 
@@ -105,9 +106,9 @@ function GenTable({ page, onPage, range }) {
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Generation Records</h2>
           {data && <p className="text-xs text-slate-400 mt-0.5">{data.total.toLocaleString()} records total</p>}
         </div>
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/60 px-3 py-1">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />
-          <span className="text-xs font-medium text-emerald-700">Generation</span>
+          <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Generation</span>
         </div>
       </div>
 
@@ -137,7 +138,7 @@ function GenTable({ page, onPage, range }) {
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.rpm.toFixed(0)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.wind_speed.toFixed(1)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.frequency.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{r.power.toFixed(3)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">{fmtWatts(r.power)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.energy.toFixed(3)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.temperature.toFixed(1)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.humidity.toFixed(1)}</td>
@@ -168,7 +169,7 @@ function ConTable({ page, onPage, range }) {
     if (range?.from) qs.set('from', range.from);
     if (range?.to)   qs.set('to',   range.to);
     api.get(`/api/dashboard/history/consumption?${qs}`)
-      .then(setData)
+      .then(d => setData({ ...d, rows: powerToWatts(d.rows) }))
       .finally(() => setLoading(false));
   }, [page, range]);
 
@@ -188,9 +189,9 @@ function ConTable({ page, onPage, range }) {
           <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Consumption Records</h2>
           {data && <p className="text-xs text-slate-400 mt-0.5">{data.total.toLocaleString()} records total</p>}
         </div>
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900/60 px-3 py-1">
           <span className="w-2 h-2 rounded-full bg-amber-500" />
-          <span className="text-xs font-medium text-amber-700">Consumption</span>
+          <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Consumption</span>
         </div>
       </div>
 
@@ -214,7 +215,7 @@ function ConTable({ page, onPage, range }) {
                     <td className="px-4 py-3 whitespace-nowrap text-slate-500 dark:text-slate-400">{toEATReceived(r.received_at)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.voltage.toFixed(1)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.current.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{r.power.toFixed(3)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{fmtWatts(r.power)}</td>
                     <td className="px-4 py-3 text-right text-slate-600 dark:text-slate-400 tabular-nums">{r.energy.toFixed(3)}</td>
                   </tr>
                 ))}

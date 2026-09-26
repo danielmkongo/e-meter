@@ -3,6 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { api } from '../api.js';
+import { powerToWatts, fmtWatts } from '../units.js';
 
 const EAT_OFFSET = 3 * 60;
 
@@ -16,14 +17,35 @@ function fmtTime(isoStr) {
   const eat = new Date(new Date(isoStr).getTime() + EAT_OFFSET * 60 * 1000);
   return eat.toISOString().slice(11, 16);
 }
+// The device records consumption on every wake cycle but generation only once per
+// record window, so the two series share few timestamps. Every row is kept as its
+// own x-slot (rows sharing a timestamp are paired by position) and the gaps are
+// left null — the <Line>s use connectNulls so each series still draws continuously
+// instead of collapsing into invisible single-point segments.
 function mergeChartData(gen, con) {
-  const map = {};
-  for (const r of gen) map[r.timestamp] = { time: fmtTime(r.timestamp), generation: r.power };
-  for (const r of con) {
-    if (map[r.timestamp]) map[r.timestamp].consumption = r.power;
-    else map[r.timestamp] = { time: fmtTime(r.timestamp), consumption: r.power };
-  }
-  return Object.values(map).sort((a, b) => a.time.localeCompare(b.time));
+  const byTs = new Map();
+  const slot = (ts, i) => {
+    let list = byTs.get(ts);
+    if (!list) byTs.set(ts, list = []);
+    while (list.length <= i) list.push({ ts, time: fmtTime(ts) });
+    return list[i];
+  };
+
+  const push = (rows, key) => {
+    const seen = new Map();   // timestamp → how many rows of this series used it
+    for (const r of rows) {
+      const i = seen.get(r.timestamp) ?? 0;
+      seen.set(r.timestamp, i + 1);
+      slot(r.timestamp, i)[key] = r.power;
+    }
+  };
+
+  push(gen, 'generation');
+  push(con, 'consumption');
+
+  // Sort on the full timestamp — the HH:MM label alone reorders a window that
+  // crosses midnight.
+  return [...byTs.keys()].sort((a, b) => a.localeCompare(b)).flatMap(ts => byTs.get(ts));
 }
 
 function KPICard({ label, value, unit, subtext, valueClass, iconBg, icon }) {
@@ -60,7 +82,7 @@ function PowerTooltip({ active, payload, label }) {
         <div key={p.dataKey} className="flex items-center gap-2 mb-1 last:mb-0">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
           <span className="text-slate-500 dark:text-slate-400">{p.name}:</span>
-          <span className="font-bold text-slate-900 dark:text-slate-100">{p.value?.toFixed(3)} W</span>
+          <span className="font-bold text-slate-900 dark:text-slate-100">{fmtWatts(p.value)} W</span>
         </div>
       ))}
     </div>
@@ -79,9 +101,14 @@ export default function Overview() {
         api.get('/api/dashboard/latest'),
         api.get('/api/dashboard/power-chart'),
       ]);
-      setLatest(latestData);
-      setChart(mergeChartData(chartData.generation, chartData.consumption));
-      setPeakGen(Math.max(...chartData.generation.map(r => r.power ?? 0), 0));
+      const gen = powerToWatts(chartData.generation);
+      const con = powerToWatts(chartData.consumption);
+      setLatest({
+        generation:  powerToWatts(latestData.generation),
+        consumption: powerToWatts(latestData.consumption),
+      });
+      setChart(mergeChartData(gen, con));
+      setPeakGen(Math.max(...gen.map(r => r.power ?? 0), 0));
       setLastFetch(new Date());
     } catch (err) {
       console.error('Overview fetch error:', err);
@@ -128,14 +155,14 @@ export default function Overview() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KPICard
-          label="Generation" value={g?.power?.toFixed(3)} unit="W"
+          label="Generation" value={g ? fmtWatts(g.power) : null} unit="W"
           subtext={g ? toEAT(g.timestamp) : 'No data'}
           valueClass="text-emerald-700 dark:text-emerald-400"
           iconBg="bg-emerald-100 dark:bg-emerald-500/10"
           icon={<svg className="w-4 h-4 text-emerald-700 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>}
         />
         <KPICard
-          label="Consumption" value={c?.power?.toFixed(3)} unit="W"
+          label="Consumption" value={c ? fmtWatts(c.power) : null} unit="W"
           subtext={c ? toEAT(c.timestamp) : 'No data'}
           valueClass="text-amber-600 dark:text-amber-400"
           iconBg="bg-amber-100 dark:bg-amber-500/10"
@@ -143,7 +170,7 @@ export default function Overview() {
         />
         <KPICard
           label="Net Balance"
-          value={net != null ? (net >= 0 ? '+' : '') + net.toFixed(3) : null} unit="W"
+          value={net != null ? (net >= 0 ? '+' : '') + fmtWatts(net) : null} unit="W"
           subtext={net != null ? (net >= 0 ? 'Exporting to grid' : 'Importing from grid') : 'No data'}
           valueClass={net == null || net >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}
           iconBg={net == null || net >= 0 ? 'bg-indigo-100 dark:bg-indigo-500/10' : 'bg-rose-100 dark:bg-rose-500/10'}
@@ -171,7 +198,7 @@ export default function Overview() {
               {peakGen != null && (
                 <div className="text-right">
                   <div className="text-xs text-slate-400 dark:text-slate-500">24h peak</div>
-                  <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{peakGen.toFixed(3)} W</div>
+                  <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{fmtWatts(peakGen)} W</div>
                 </div>
               )}
               <div className="flex flex-col gap-1">
@@ -192,8 +219,8 @@ export default function Overview() {
                 <XAxis dataKey="time" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" W" width={68} axisLine={false} tickLine={false} />
                 <Tooltip content={<PowerTooltip />} />
-                <Line type="monotone" dataKey="generation"  name="Generation"  stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-                <Line type="monotone" dataKey="consumption" name="Consumption" stroke="#ef4444" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="generation"  name="Generation"  stroke="#10b981" strokeWidth={2.5} dot={false} connectNulls activeDot={{ r: 4, strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="consumption" name="Consumption" stroke="#ef4444" strokeWidth={2.5} dot={false} connectNulls activeDot={{ r: 4, strokeWidth: 0 }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -265,7 +292,7 @@ export default function Overview() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{g?.power?.toFixed(3) ?? '—'}</div>
+              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{g ? fmtWatts(g.power) : '—'}</div>
               <div className="text-xs text-slate-400 dark:text-slate-500">W output</div>
             </div>
           </div>
@@ -303,7 +330,7 @@ export default function Overview() {
               </div>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">{c?.power?.toFixed(3) ?? '—'}</div>
+              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">{c ? fmtWatts(c.power) : '—'}</div>
               <div className="text-xs text-slate-400 dark:text-slate-500">W load</div>
             </div>
           </div>
@@ -311,7 +338,7 @@ export default function Overview() {
             {[
               { label: 'Voltage', value: c?.voltage?.toFixed(1), unit: 'V'   },
               { label: 'Current', value: c?.current?.toFixed(2), unit: 'A'   },
-              { label: 'Power',   value: c?.power?.toFixed(3),   unit: 'W'   },
+              { label: 'Power',   value: c ? fmtWatts(c.power) : null, unit: 'W'   },
               { label: 'Energy',  value: c?.energy?.toFixed(3),  unit: 'kWh' },
             ].map(({ label, value, unit }) => (
               <div key={label} className="bg-white dark:bg-slate-900 px-4 py-3">
@@ -334,7 +361,7 @@ export default function Overview() {
               </div>
               <div className="text-right">
                 <span className={`text-xl font-bold tabular-nums ${net >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                  {net >= 0 ? '+' : ''}{net.toFixed(3)}
+                  {net >= 0 ? '+' : ''}{fmtWatts(net)}
                 </span>
                 <span className="text-xs text-slate-400 ml-1">W</span>
               </div>

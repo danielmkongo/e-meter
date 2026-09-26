@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import { api } from '../api.js';
 import { exportExcel } from '../exportExcel.js';
+import { powerToWatts, fmtWatts } from '../units.js';
 
 // ── Time helpers ──────────────────────────────────────────────────────────────
 
@@ -22,6 +23,36 @@ function fmtLabel(isoStr, multiDay) {
   return multiDay
     ? eat.toISOString().slice(5, 16).replace('T', ' ') // MM-DD HH:MM
     : eat.toISOString().slice(11, 16);                  // HH:MM
+}
+
+// Merge the generation and consumption series into one array for a combined chart.
+// The device records consumption on every wake cycle but generation only once per
+// record window, so the two series share few timestamps. Every row is kept as its
+// own x-slot (rows sharing a timestamp are paired by position) and the gaps are
+// left null — the <Line>s use connectNulls so each series still draws continuously
+// instead of collapsing into invisible single-point segments.
+function mergeSeries(gen, con, label) {
+  const byTs = new Map();
+  const slot = (ts, i) => {
+    let list = byTs.get(ts);
+    if (!list) byTs.set(ts, list = []);
+    while (list.length <= i) list.push({ ts, label: label(ts) });
+    return list[i];
+  };
+
+  const push = (rows, key) => {
+    const seen = new Map();   // timestamp → how many rows of this series used it
+    for (const r of rows) {
+      const i = seen.get(r.timestamp) ?? 0;
+      seen.set(r.timestamp, i + 1);
+      slot(r.timestamp, i)[key] = +r.power.toFixed(2);
+    }
+  };
+
+  push(gen, 'generation');
+  push(con, 'consumption');
+
+  return [...byTs.keys()].sort((a, b) => a.localeCompare(b)).flatMap(ts => byTs.get(ts));
 }
 
 // ── Date range helpers ────────────────────────────────────────────────────────
@@ -74,7 +105,7 @@ function DateRangeBar({ preset, customFrom, customTo, onChange }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       {/* Preset pills */}
-      <div className="flex items-center gap-1 rounded-xl bg-slate-200/70 p-1">
+      <div className="flex items-center gap-1 rounded-xl bg-slate-200/70 dark:bg-slate-800/70 p-1">
         {PRESETS.map(p => (
           <button
             key={p.id}
@@ -125,7 +156,7 @@ function Spinner() {
 function EmptyChart() {
   return (
     <div className="flex h-64 flex-col items-center justify-center gap-2 text-slate-400">
-      <svg className="w-8 h-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <svg className="w-8 h-8 text-slate-300 dark:text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
       </svg>
       <span className="text-sm">No data for this period</span>
@@ -136,13 +167,13 @@ function EmptyChart() {
 function ChartTooltip({ active, payload, label, unit }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl bg-slate-900 border border-slate-700 shadow-xl p-3 text-xs">
-      <div className="font-semibold text-slate-500 mb-1.5">{label}</div>
+    <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg p-3 text-xs">
+      <div className="font-semibold text-slate-500 dark:text-slate-400 mb-1.5">{label}</div>
       {payload.map(p => (
         <div key={p.dataKey} className="flex items-center gap-2 mb-1 last:mb-0">
           <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-          <span className="text-slate-500">{p.name}:</span>
-          <span className="font-bold text-slate-100">{p.value != null ? p.value : '—'}{p.unit || (unit ? ` ${unit}` : '')}</span>
+          <span className="text-slate-500 dark:text-slate-400">{p.name}:</span>
+          <span className="font-bold text-slate-900 dark:text-slate-100">{p.value != null ? p.value : '—'}{p.unit || (unit ? ` ${unit}` : '')}</span>
         </div>
       ))}
     </div>
@@ -197,15 +228,7 @@ function CombinedTab({ range }) {
     setLoading(true);
     try {
       const d = await api.get('/api/dashboard/power-chart' + rangeQs(range));
-      const map = {};
-      for (const r of d.generation) {
-        map[r.timestamp] = { ts: r.timestamp, label: fmtLabel(r.timestamp, multiDay), generation: +r.power.toFixed(4) };
-      }
-      for (const r of d.consumption) {
-        if (map[r.timestamp]) map[r.timestamp].consumption = +r.power.toFixed(4);
-        else map[r.timestamp] = { ts: r.timestamp, label: fmtLabel(r.timestamp, multiDay), consumption: +r.power.toFixed(4) };
-      }
-      setChart(Object.values(map).sort((a, b) => a.ts.localeCompare(b.ts)));
+      setChart(mergeSeries(powerToWatts(d.generation), powerToWatts(d.consumption), ts => fmtLabel(ts, multiDay)));
     } finally {
       setLoading(false);
     }
@@ -240,8 +263,8 @@ function CombinedTab({ range }) {
               <XAxis dataKey="label" tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: 'var(--chart-tick)', fontSize: 11 }} unit=" W" width={70} axisLine={false} tickLine={false} />
               <Tooltip content={<ChartTooltip unit="W" />} />
-              <Line type="monotone" dataKey="generation"  name="Generation"  stroke="#10b981" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-              <Line type="monotone" dataKey="consumption" name="Consumption" stroke="#ef4444" strokeWidth={2.5} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+              <Line type="monotone" dataKey="generation"  name="Generation"  stroke="#10b981" strokeWidth={2.5} dot={false} connectNulls activeDot={{ r: 4, strokeWidth: 0 }} />
+              <Line type="monotone" dataKey="consumption" name="Consumption" stroke="#ef4444" strokeWidth={2.5} dot={false} connectNulls activeDot={{ r: 4, strokeWidth: 0 }} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -286,8 +309,8 @@ function IndividualTab({ range }) {
       api.get('/api/dashboard/gen-timeseries' + rangeQs(range)),
       api.get('/api/dashboard/con-timeseries' + rangeQs(range)),
     ]).then(([gen, con]) => {
-      setGenData(gen.map(r => ({ ...r, label: fmtLabel(r.timestamp, multiDay) })));
-      setConData(con.map(r => ({ ...r, label: fmtLabel(r.timestamp, multiDay) })));
+      setGenData(powerToWatts(gen).map(r => ({ ...r, label: fmtLabel(r.timestamp, multiDay) })));
+      setConData(powerToWatts(con).map(r => ({ ...r, label: fmtLabel(r.timestamp, multiDay) })));
     }).finally(() => setLoading(false));
   }, [range, multiDay]);
 
@@ -323,8 +346,10 @@ function IndividualTab({ range }) {
   const allValues = selectedMetas.flatMap(meta =>
     chartData.map(d => d[meta.key]).filter(v => v != null)
   );
-  const minVal  = allValues.length ? Math.min(...allValues) : 0;
-  const maxVal  = allValues.length ? Math.max(...allValues) : 1;
+  // Exclude zeros from stats — they represent readings the device hasn't reported yet
+  const statValues = allValues.filter(v => v !== 0);
+  const minVal  = statValues.length ? Math.min(...statValues) : 0;
+  const maxVal  = statValues.length ? Math.max(...statValues) : 1;
   const padding = (maxVal - minVal) * 0.1 || 0.5;
 
   // Y-axis label: shared unit if all selected params use the same unit, else blank
@@ -381,11 +406,11 @@ function IndividualTab({ range }) {
             ))}
           </div>
           {/* Stats — only shown for a single selected param */}
-          {selectedMetas.length === 1 && allValues.length > 0 && (
+          {selectedMetas.length === 1 && statValues.length > 0 && (
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
                 { label: 'Min', val: minVal },
-                { label: 'Avg', val: allValues.reduce((a, b) => a + b, 0) / allValues.length },
+                { label: 'Avg', val: statValues.reduce((a, b) => a + b, 0) / statValues.length },
                 { label: 'Max', val: maxVal },
               ].map(({ label, val }) => (
                 <div key={label}>
@@ -490,7 +515,9 @@ function GenTable({ range, page, onPage }) {
     const qs = new URLSearchParams({ page });
     if (range.from) qs.set('from', range.from);
     if (range.to)   qs.set('to',   range.to);
-    api.get(`/api/dashboard/history/generation?${qs}`).then(setData).finally(() => setLoading(false));
+    api.get(`/api/dashboard/history/generation?${qs}`)
+      .then(d => setData({ ...d, rows: powerToWatts(d.rows) }))
+      .finally(() => setLoading(false));
   }, [range, page]);
 
   return (
@@ -500,7 +527,7 @@ function GenTable({ range, page, onPage }) {
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Generation Records</h3>
           {data && <p className="text-xs text-slate-400 mt-0.5">{data.total.toLocaleString()} records</p>}
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-medium text-emerald-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/60 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
           <span className="w-2 h-2 rounded-full bg-emerald-500" />Generation
         </span>
       </div>
@@ -509,26 +536,26 @@ function GenTable({ range, page, onPage }) {
           <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
             <table className="min-w-full text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
                   {['Timestamp (EAT)', 'Firmware', 'V (V)', 'I (A)', 'RPM', 'Wind m/s', 'Hz', 'W', 'kWh', '°C', 'RH %'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-100">
+              <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
                 {data?.rows.map((r, i) => (
-                  <tr key={r.id} className={`hover:bg-slate-50 ${i % 2 ? 'bg-slate-50/30' : ''}`}>
-                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700">{toEAT(r.timestamp)}</td>
-                    <td className="px-4 py-3"><span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-slate-600">{r.firmware}</span></td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.voltage.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.current.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.rpm.toFixed(0)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.wind_speed.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.frequency.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums font-semibold text-emerald-600">{r.power.toFixed(3)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.energy.toFixed(3)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.temperature.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.humidity.toFixed(1)}</td>
+                  <tr key={r.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${i % 2 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''}`}>
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">{toEAT(r.timestamp)}</td>
+                    <td className="px-4 py-3"><span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 font-mono text-slate-600 dark:text-slate-300">{r.firmware}</span></td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.voltage.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.current.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.rpm.toFixed(0)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.wind_speed.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.frequency.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">{fmtWatts(r.power)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.energy.toFixed(3)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.temperature.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.humidity.toFixed(1)}</td>
                   </tr>
                 ))}
                 {data?.rows.length === 0 && <tr><td colSpan={11} className="px-4 py-10 text-center text-slate-400">No records for this period</td></tr>}
@@ -550,7 +577,9 @@ function ConTable({ range, page, onPage }) {
     const qs = new URLSearchParams({ page });
     if (range.from) qs.set('from', range.from);
     if (range.to)   qs.set('to',   range.to);
-    api.get(`/api/dashboard/history/consumption?${qs}`).then(setData).finally(() => setLoading(false));
+    api.get(`/api/dashboard/history/consumption?${qs}`)
+      .then(d => setData({ ...d, rows: powerToWatts(d.rows) }))
+      .finally(() => setLoading(false));
   }, [range, page]);
 
   return (
@@ -560,7 +589,7 @@ function ConTable({ range, page, onPage }) {
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Consumption Records</h3>
           {data && <p className="text-xs text-slate-400 mt-0.5">{data.total.toLocaleString()} records</p>}
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-medium text-amber-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900/60 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
           <span className="w-2 h-2 rounded-full bg-amber-500" />Consumption
         </span>
       </div>
@@ -569,20 +598,20 @@ function ConTable({ range, page, onPage }) {
           <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
             <table className="min-w-full text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
+                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
                   {['Timestamp (EAT)', 'V (V)', 'I (A)', 'W', 'kWh'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-slate-100">
+              <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">
                 {data?.rows.map((r, i) => (
-                  <tr key={r.id} className={`hover:bg-slate-50 ${i % 2 ? 'bg-slate-50/30' : ''}`}>
-                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700">{toEAT(r.timestamp)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.voltage.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.current.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums font-semibold text-amber-600">{r.power.toFixed(3)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-slate-600">{r.energy.toFixed(3)}</td>
+                  <tr key={r.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${i % 2 ? 'bg-slate-50/30 dark:bg-slate-800/20' : ''}`}>
+                    <td className="px-4 py-3 whitespace-nowrap font-medium text-slate-700 dark:text-slate-300">{toEAT(r.timestamp)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.voltage.toFixed(1)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.current.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold text-amber-600 dark:text-amber-400">{fmtWatts(r.power)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">{r.energy.toFixed(3)}</td>
                   </tr>
                 ))}
                 {data?.rows.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">No records for this period</td></tr>}
@@ -614,7 +643,7 @@ function ExportButton({ range }) {
     <button
       onClick={handleExport}
       disabled={busy}
-      className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+      className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/50 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
     >
       {busy ? (
         <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -676,18 +705,18 @@ export default function Analytics() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Analytics</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Analytics</h1>
         <p className="text-sm text-slate-500 mt-0.5">Deep-dive into generation and consumption data</p>
       </div>
 
       {/* Controls row: tabs + date range */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         {/* Tab bar */}
-        <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-200/70 p-1">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-200/70 dark:bg-slate-800/70 p-1">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${
-                tab === t.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                tab === t.id ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
               }`}>
               {t.icon}{t.label}
             </button>
