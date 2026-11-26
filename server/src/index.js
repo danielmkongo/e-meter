@@ -35,6 +35,14 @@ app.use('/api/dashboard', dashboardRouter(db));
 app.use('/api/ota',       otaRouter(db));
 app.use('/api/turbines',  turbinesRouter(db));
 
+// A device that drops its connection mid-upload (weak GSM/WiFi) aborts the
+// request body. Nothing can be answered and nothing was stored; skip the
+// stack trace so real errors stay visible in the log.
+app.use((err, req, res, next) => {
+  if (err.type === 'request.aborted') return;
+  next(err);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
