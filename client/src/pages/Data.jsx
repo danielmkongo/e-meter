@@ -3,7 +3,7 @@ import { useTheme } from '../ThemeContext.jsx';
 import { useApi, usePref } from '../lib/useApi.js';
 import { materialColor, material } from '../lib/materials.js';
 import { fmtEAT, fmtNum } from '../lib/format.js';
-import { stableRange, qs } from '../lib/range.js';
+import { stableRange, qs, useFitRange } from '../lib/range.js';
 import { PageHeader, Segmented, RangePicker, Empty, Spinner, LoadingVeil, Icon } from '../components/ui.jsx';
 
 const GEN_COLS = [
@@ -38,6 +38,14 @@ export default function Data() {
   const [err, setErr]       = useState('');
 
   const { data: turbines } = useApi('/api/turbines');
+  const { data: fleet } = useApi('/api/dashboard/fleet');
+
+  // If the chosen source has gone quiet, open on the latest range with data.
+  const lastAt = source === 'generation'
+    ? (fleet?.turbines || []).filter(t => !picked.length || picked.includes(t.id)).map(t => t.latest?.timestamp).filter(Boolean).sort().pop()
+    : fleet?.consumption?.latest?.timestamp;
+  useFitRange(range, (x) => { setRange(x); setPage(1); }, lastAt, source + ':' + picked.join(','));
+
   const r = stableRange(range);
   const { data, loading } = useApi(`/api/dashboard/history/${source}` + qs({ page, limit: 25, from: r.from, to: r.to, turbines: source === 'generation' ? picked : [] }));
 
@@ -76,7 +84,7 @@ export default function Data() {
                 const on = picked.includes(t.id);
                 return (
                   <button key={t.id} onClick={() => togglePick(t.id)}
-                          className={`chip ${on ? '!text-ink !border-ink bg-surface' : 'hover:text-ink'}`}
+                          className={`chip ${on ? '!text-ink picked' : 'hover:text-ink'}`}
                           >
                     <span className="h-2 w-2 rounded-full" style={{ background: materialColor(t.blade, isDark) }} />
                     {t.name}

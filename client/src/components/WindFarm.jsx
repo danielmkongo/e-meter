@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { BladeDefs, TurbineFigure, TOWER_H, BLADE_L } from './turbine.jsx';
+import { BladeDefs, TurbineFigure, poseRotor, TOWER_H, BLADE_L } from './turbine.jsx';
 import { material, materialColor } from '../lib/materials.js';
 import { fmtPower } from '../lib/format.js';
 
@@ -104,7 +104,7 @@ export default function WindFarm({ turbines, selectedId, onSelect = () => {}, is
       for (const [id, m] of Object.entries(motion.current)) {
         m.speed += ((m.target ?? 0) - m.speed) * Math.min(1, dt * 0.8);   // spin up / coast down
         m.angle = (m.angle + m.speed * dt) % 360;
-        rotorRefs.current[id]?.setAttribute('transform', `rotate(${m.angle.toFixed(2)})`);
+        poseRotor(rotorRefs.current[id], m.angle);
       }
       raf = requestAnimationFrame(tick);
     };
@@ -143,13 +143,13 @@ export default function WindFarm({ turbines, selectedId, onSelect = () => {}, is
     const p = fmtPower(t.latest?.power);
     return (
       <g key={t.id} data-tid={t.id} className="turbine-hit" role="button" tabIndex={0}
-         aria-label={`${t.name}, ${material(t.blade).label} blades${active ? ', selected' : ''}`}
+         aria-label={`${t.name}, ${t.axis === 'vertical' ? 'vertical-axis, ' : ''}${material(t.blade).label} blades${active ? ', selected' : ''}`}
          aria-pressed={active}
          onClick={() => onSelect(t.id)} onKeyDown={(e) => handleKey(e, t.id)}
          transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}>
         <rect x={-half} y={-(TOWER_H + BLADE_L) * s - 6} width={half * 2} height={(TOWER_H + BLADE_L) * s + 52} fill="transparent" />
         <g pointerEvents="none" className="turbine-body" data-dim={!active} style={{ opacity: active ? 1 : 0.5 }} transform={`scale(${s})`}>
-          <TurbineFigure uid={uid} blade={t.blade} active={active} color={color}
+          <TurbineFigure uid={uid} blade={t.blade} axis={t.axis} active={active} color={color}
                          rotorRef={(el) => { if (el) rotorRefs.current[t.id] = el; }}
                          angle={motion.current[t.id]?.angle ?? 0} />
         </g>

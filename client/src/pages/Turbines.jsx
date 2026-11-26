@@ -5,7 +5,7 @@ import { useApi } from '../lib/useApi.js';
 import { MATERIALS, MATERIAL_KEYS, material, materialColor } from '../lib/materials.js';
 import { fmtEAT, fmtNum } from '../lib/format.js';
 import { TurbineIcon } from '../components/turbine.jsx';
-import { PageHeader, CardTitle, Icon, Spinner, MaterialChip } from '../components/ui.jsx';
+import { PageHeader, CardTitle, Icon, Spinner, MaterialChip, Segmented } from '../components/ui.jsx';
 
 function MaterialPicker({ value, onChange, isDark }) {
   return (
@@ -16,7 +16,7 @@ function MaterialPicker({ value, onChange, isDark }) {
         return (
           <button key={k} type="button" onClick={() => onChange(k)} aria-pressed={on}
                   className={`relative flex flex-col items-center gap-1.5 rounded-2xl border px-2 pb-2.5 pt-3 transition ${
-                    on ? 'border-ink bg-surface' : 'border-line/70 hover:bg-raised/60'}`}>
+                    on ? 'picked' : 'border-line/70 hover:bg-raised/60'}`}>
             <div className={on ? '' : 'opacity-60 grayscale'}>
               <TurbineIcon blade={k} color={c} size={26} uid={`pick-${k}`} isDark={isDark} />
             </div>
@@ -28,6 +28,8 @@ function MaterialPicker({ value, onChange, isDark }) {
     </div>
   );
 }
+
+const AXES = [{ value: 'horizontal', label: 'Horizontal axis' }, { value: 'vertical', label: 'Vertical axis' }];
 
 function Field({ label, children, hint }) {
   return (
@@ -51,7 +53,7 @@ function TurbineCard({ t, onSaved, isDark }) {
     setBusy(true); setErr('');
     try {
       await api.put(`/api/turbines/${encodeURIComponent(t.id)}`, {
-        name: form.name, blade: form.blade, rotor_diameter: form.rotor_diameter, notes: form.notes,
+        name: form.name, blade: form.blade, axis: form.axis || 'horizontal', rotor_diameter: form.rotor_diameter, notes: form.notes,
       });
       setEdit(false); onSaved();
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
@@ -67,13 +69,13 @@ function TurbineCard({ t, onSaved, isDark }) {
       <div className="relative flex items-end gap-4 px-6 pt-6">
         <div className="pointer-events-none absolute inset-0 opacity-60"
              style={{ background: `radial-gradient(80% 90% at 15% 100%, ${color}22, transparent 70%)` }} />
-        <div className="relative -mb-1"><TurbineIcon blade={t.blade} color={color} size={52} uid={`card-${t.id}`} isDark={isDark} /></div>
+        <div className="relative -mb-1"><TurbineIcon blade={t.blade} axis={t.axis} color={color} size={52} uid={`card-${t.id}`} isDark={isDark} /></div>
         <div className="relative min-w-0 flex-1 pb-3">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-lg font-semibold text-ink">{t.name}</h3>
             <span className="rounded-md bg-raised px-1.5 py-0.5 font-mono text-[11px] text-muted">{t.id}</span>
           </div>
-          <div className="mt-1.5"><MaterialChip blade={t.blade} /></div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2"><MaterialChip blade={t.blade} />{t.axis === 'vertical' && <span className="text-[11px] text-muted">Vertical axis</span>}</div>
         </div>
         {!edit && (
           <button onClick={() => { setForm(t); setEdit(true); }} className="relative mb-3 grid h-9 w-9 place-items-center rounded-xl border border-line/70 text-muted hover:bg-raised hover:text-ink" aria-label={`Edit ${t.name}`}>
@@ -103,6 +105,7 @@ function TurbineCard({ t, onSaved, isDark }) {
                  hint="New readings are tagged with this material. Past readings keep the material they were recorded with, so swapping blades never rewrites history.">
             <MaterialPicker value={form.blade} onChange={set('blade')} isDark={isDark} />
           </Field>
+          <Field label="Rotor type"><Segmented value={form.axis || 'horizontal'} onChange={set('axis')} options={AXES} /></Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Rotor diameter (m)" hint="Enables tip-speed ratio">
               <input className="input num" type="number" step="0.01" min="0" value={form.rotor_diameter ?? ''} onChange={set('rotor_diameter')} placeholder="1.60" />
@@ -123,7 +126,7 @@ function TurbineCard({ t, onSaved, isDark }) {
 
 function AddTurbine({ existing, onSaved, isDark }) {
   const nextKey = (() => { for (let i = 1; i < 100; i++) if (!existing.includes(`T${i}`)) return `T${i}`; return ''; })();
-  const [form, setForm] = useState({ id: nextKey, name: '', blade: 'pla', rotor_diameter: '' });
+  const [form, setForm] = useState({ id: nextKey, name: '', blade: 'pla', axis: 'horizontal', rotor_diameter: '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e?.target ? e.target.value : e }));
@@ -147,6 +150,7 @@ function AddTurbine({ existing, onSaved, isDark }) {
         <Field label="Name"><input className="input" value={form.name} onChange={set('name')} placeholder={`Turbine ${form.id.replace(/^T/i, '')}`} /></Field>
       </div>
       <Field label="Blade material"><MaterialPicker value={form.blade} onChange={set('blade')} isDark={isDark} /></Field>
+      <Field label="Rotor type"><Segmented value={form.axis} onChange={set('axis')} options={AXES} /></Field>
       <Field label="Rotor diameter (m)"><input className="input num" type="number" step="0.01" min="0" value={form.rotor_diameter} onChange={set('rotor_diameter')} placeholder="1.60" /></Field>
       {err && <div className="text-xs text-bad">{err}</div>}
       <button disabled={busy} className="btn-primary w-full"><Icon name="plus" /> {busy ? 'Adding…' : 'Add turbine'}</button>

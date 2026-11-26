@@ -7,6 +7,7 @@ function clean(body) {
   const out = {};
   if (body.name !== undefined)  out.name  = String(body.name).trim().slice(0, 60);
   if (body.blade !== undefined) out.blade = BLADE_MATERIALS.includes(body.blade) ? body.blade : 'unassigned';
+  if (body.axis !== undefined)  out.axis  = body.axis === 'vertical' ? 'vertical' : 'horizontal';
   if (body.notes !== undefined) out.notes = body.notes ? String(body.notes).slice(0, 500) : null;
   if (body.rotor_diameter !== undefined) {
     const d = Number(body.rotor_diameter);
@@ -36,9 +37,9 @@ export function turbinesRouter(db) {
     if (!c.name) c.name = `Turbine ${id.replace(/^T/i, '')}`;
     try {
       db.prepare(`
-        INSERT INTO turbines (id, name, blade, rotor_diameter, notes, position)
-        VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM turbines))
-      `).run(id, c.name, c.blade || 'unassigned', c.rotor_diameter ?? null, c.notes ?? null);
+        INSERT INTO turbines (id, name, blade, axis, rotor_diameter, notes, position)
+        VALUES (?, ?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position), 0) + 1 FROM turbines))
+      `).run(id, c.name, c.blade || 'unassigned', c.axis || 'horizontal', c.rotor_diameter ?? null, c.notes ?? null);
       res.status(201).json(db.prepare('SELECT * FROM turbines WHERE id = ?').get(id));
     } catch (err) {
       if (String(err.message).includes('UNIQUE') || String(err.message).includes('PRIMARY')) {

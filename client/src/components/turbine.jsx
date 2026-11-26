@@ -6,8 +6,30 @@ export const BLADE_L = 112;
 
 const L = BLADE_L;
 // An airfoil-ish blade pointing up from the hub: broad root, curved leading edge, fine tip.
-export const BLADE_PATH =
+export const BLADE_PATH_H =
   `M -3 -6 C -7.5 -22, -6 -${L * 0.55}, -2.2 -${L} Q 0 -${L + 3} 2.2 -${L} C 5 -${L * 0.62}, 10 -${L * 0.28}, 4.5 -6 Z`;
+
+// Vertical-axis (H-Darrieus) rotor: three upright blades on struts circling the
+// mast. Seen from the side, each blade slides left/right as it goes round.
+const VR = 64;                      // rotor radius
+const VT = -(TOWER_H + 96);         // blade top
+const VB = -(TOWER_H - 36);         // blade bottom
+const VBLADE = `M -5 ${VT + 6} Q -5 ${VT} 0 ${VT} Q 5 ${VT} 5 ${VT + 6} L 5 ${VB - 6} Q 5 ${VB} 0 ${VB} Q -5 ${VB} -5 ${VB - 6} Z`;
+const vPose = (angle, ph) => { const a = (angle + ph) * Math.PI / 180; return { x: VR * Math.sin(a), op: 0.45 + 0.55 * (Math.cos(a) + 1) / 2 }; };
+
+// Put a rotor at `angle` degrees. One animation loop calls this for every
+// turbine, so it works on the DOM directly instead of re-rendering React.
+export function poseRotor(el, angle) {
+  if (!el) return;
+  if (el.dataset.vawt == null) { el.setAttribute('transform', `rotate(${angle.toFixed(2)})`); return; }
+  for (const c of el.children) {
+    if (c.dataset.ph == null) continue;
+    const { x, op } = vPose(angle, Number(c.dataset.ph));
+    c.setAttribute('transform', `translate(${x.toFixed(2)} 0)`);
+    c.setAttribute('opacity', op.toFixed(2));
+    for (const l of c.querySelectorAll('line')) l.setAttribute('x1', (-x).toFixed(2));
+  }
+}
 
 const shade = (hex, amt) => {
   const n = parseInt(hex.slice(1), 16);
@@ -62,7 +84,7 @@ export function BladeDefs({ uid, isDark }) {
   );
 }
 
-function Blade({ uid, blade, active, color }) {
+function Blade({ uid, blade, active, color, d: BLADE_PATH = BLADE_PATH_H }) {
   if (!active) return <path d={BLADE_PATH} fill="var(--ghost)" />;
   if (blade === 'aluminum') return <path d={BLADE_PATH} fill={`url(#${uid}-al)`} stroke={color} strokeWidth=".9" />;
   if (blade === 'pla') return (
@@ -82,8 +104,9 @@ function Blade({ uid, blade, active, color }) {
 
 // The turbine's static body. The rotor <g> is handed back through rotorRef so a
 // single animation loop can spin every rotor without re-rendering React.
-export function TurbineFigure({ uid, blade, active, color, rotorRef, angle = 0, showGlow = true }) {
+export function TurbineFigure({ uid, blade, axis, active, color, rotorRef, angle = 0, showGlow = true }) {
   const H = TOWER_H;
+  if (axis === 'vertical') return <VerticalFigure {...{ uid, blade, active, color, rotorRef, angle, showGlow }} />;
   return (
     <g>
       {active && showGlow && (
@@ -113,13 +136,45 @@ export function TurbineFigure({ uid, blade, active, color, rotorRef, angle = 0, 
   );
 }
 
+function VerticalFigure({ uid, blade, active, color, rotorRef, angle, showGlow }) {
+  const metal = active ? 'var(--tower-hi)' : 'var(--ghost)';
+  return (
+    <g>
+      {active && showGlow && (
+        <g style={{ color }}>
+          <ellipse cx="0" cy="2" rx="70" ry="10" fill={`url(#${uid}-ground)`} />
+          <ellipse cx="0" cy="2" rx="34" ry="5" fill="none" stroke={color} strokeWidth="1.2"
+                   className="animate-pulse-ring" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
+        </g>
+      )}
+      {/* mast, running up through the rotor */}
+      <path d={`M -7 0 L 7 0 L 3.5 ${VT - 8} L -3.5 ${VT - 8} Z`} fill={active ? `url(#${uid}-tower)` : 'var(--ghost)'} />
+      {/* generator housing under the rotor */}
+      <rect x="-11" y={VB + 4} width="22" height="16" rx="5" fill={metal} />
+      {active && <rect x="-11" y={VB + 10.5} width="22" height="3" fill={color} />}
+      <circle cy={VT - 8} r="5" fill={metal} />
+      <g ref={rotorRef} data-vawt="" style={active && showGlow ? { filter: `drop-shadow(0 0 7px ${color}88)` } : undefined}>
+        {[0, 120, 240].map(ph => {
+          const { x, op } = vPose(angle, ph);
+          return (
+            <g key={ph} data-ph={ph} transform={`translate(${x.toFixed(2)} 0)`} opacity={op.toFixed(2)}>
+              {[VT + 16, VB - 16].map(y => <line key={y} x1={(-x).toFixed(2)} y1={y} x2="0" y2={y} stroke={metal} strokeWidth="3" strokeLinecap="round" />)}
+              <Blade uid={uid} blade={blade} active={active} color={color} d={VBLADE} />
+            </g>
+          );
+        })}
+      </g>
+    </g>
+  );
+}
+
 // Small static turbine for cards and lists.
-export function TurbineIcon({ blade, color, active = true, size = 44, uid = 'ti', isDark = true }) {
+export function TurbineIcon({ blade, axis, color, active = true, size = 44, uid = 'ti', isDark = true }) {
   const id = `${uid}-${blade}`;
   return (
     <svg viewBox="-125 -380 250 395" width={size} height={size * 395 / 250} aria-hidden="true">
       <BladeDefs uid={id} isDark={isDark} />
-      <TurbineFigure uid={id} blade={blade} active={active} color={color} angle={18} showGlow={false} />
+      <TurbineFigure uid={id} blade={blade} axis={axis} active={active} color={color} angle={axis === 'vertical' ? 40 : 18} showGlow={false} />
     </svg>
   );
 }

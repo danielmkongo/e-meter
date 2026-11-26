@@ -179,7 +179,7 @@ export default function Compare() {
               const on = !picked.length || picked.includes(t.id);
               return (
                 <button key={t.id} type="button" aria-pressed={on} onClick={() => togglePick(t.id)}
-                        className={`chip transition ${on ? '!border-ink/40 !text-ink bg-surface' : 'opacity-60 hover:opacity-100'}`}>
+                        className={`chip transition ${on ? '!text-ink picked' : 'opacity-60 hover:opacity-100'}`}>
                   <MaterialSwatch blade={t.blade} size={8} />
                   {t.name}
                   <span className="font-mono text-[10px] text-faint">{t.id}</span>

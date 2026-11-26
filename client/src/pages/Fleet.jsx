@@ -108,11 +108,12 @@ function TurbineStrip({ turbines, selectedId, onSelect, isDark }) {
         const p = fmtPower(t.online ? t.latest?.power : null);
         return (
           <button key={t.id} onClick={() => onSelect(t.id)}
-                  className={`group relative min-w-[210px] overflow-hidden rounded-2xl border p-4 text-left transition ${
-                    on ? 'border-ink bg-surface' : 'border-line/70 bg-surface/50 hover:border-line hover:bg-surface'}`}>
+                  className={`group relative min-w-[210px] overflow-hidden rounded-2xl border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${
+                    on ? 'picked' : 'border-line/70 bg-surface/50 hover:border-line hover:bg-surface'}`}>
+            {on && <span className="absolute inset-x-0 bottom-0 h-0.5" style={{ background: color }} />}
             <div className="flex items-start gap-3">
               <div className={`transition ${on ? '' : 'opacity-60 grayscale group-hover:opacity-90'}`}>
-                <TurbineIcon blade={t.blade} color={color} size={30} uid={`strip-${t.id}`} isDark={isDark} />
+                <TurbineIcon blade={t.blade} axis={t.axis} color={color} size={30} uid={`strip-${t.id}`} isDark={isDark} />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">

@@ -140,6 +140,11 @@ export function initDb(dbPath) {
   })();
 
   // The original turbine always exists so legacy data has a home.
+  // Rotor type, added later: horizontal-axis (classic) or vertical-axis (H-Darrieus).
+  if (!db.prepare('PRAGMA table_info(turbines)').all().some(c => c.name === 'axis')) {
+    db.exec("ALTER TABLE turbines ADD COLUMN axis TEXT NOT NULL DEFAULT 'horizontal'");
+  }
+
   const turbineCount = db.prepare('SELECT COUNT(*) AS cnt FROM turbines').get().cnt;
   if (turbineCount === 0) {
     db.prepare("INSERT INTO turbines (id, name, position) VALUES ('T1', 'Turbine 1', 1)").run();

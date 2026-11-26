@@ -8,7 +8,7 @@ import { useTheme } from '../ThemeContext.jsx';
 import { useApi, usePref } from '../lib/useApi.js';
 import { material, materialColor } from '../lib/materials.js';
 import { fmtNum, fmtClock, fmtDayTime, ago, fmtPower, EAT_OFFSET_MIN } from '../lib/format.js';
-import { stableRange, qs } from '../lib/range.js';
+import { stableRange, qs, useFitRange } from '../lib/range.js';
 import { normalize } from '../lib/normalize.js';
 import { findGaps, withGaps, gapMarks } from '../lib/gaps.jsx';
 import { axisProps, gridProps } from '../components/charts.jsx';
@@ -86,7 +86,7 @@ function ParamTile({ p, stat, on, onToggle, isDark }) {
   return (
     <button type="button" aria-pressed={on} onClick={onToggle}
             className={`group relative overflow-hidden rounded-2xl border p-3.5 text-left transition active:scale-[.98] ${
-              on ? 'border-ink bg-surface' : 'border-line/70 bg-surface/40 hover:border-line hover:bg-surface'}`}>
+              on ? 'picked' : 'border-line/70 bg-surface/40 hover:border-line hover:bg-surface'}`}>
       <div className="flex items-center gap-2">
         <span className="h-2 w-2 shrink-0 rounded-full transition" style={{ background: c, opacity: on ? 1 : 0.35 }} />
         <span className="truncate text-[11px] font-medium uppercase tracking-wider text-muted">{p.label}</span>
@@ -438,6 +438,10 @@ export default function Inspect() {
     setView(v => (v === 'correlate' ? 'overlay' : v));
     setSearch({}, { replace: true });
   }, [deepParam]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A device that went quiet opens on the latest range that has its data.
+  const lastAt = isLoad ? fleet?.consumption?.latest?.timestamp : fleet?.turbines?.find(x => x.id === device)?.latest?.timestamp;
+  useFitRange(range, setRange, lastAt, device);
 
   const r = stableRange(range);
   const url = '/api/dashboard/params' + qs(isLoad

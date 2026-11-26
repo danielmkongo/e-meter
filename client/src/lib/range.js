@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { EAT_OFFSET_MIN } from './format.js';
 
 export const PRESETS = [
@@ -24,6 +25,31 @@ export function resolveRange({ preset, from, to }) {
   if (preset === 'today')  return { from: startOfTodayEAT(now), to: new Date(now).toISOString() };
   const p = PRESETS.find(x => x.key === preset) || PRESETS[1];
   return { from: new Date(now - p.hours * 3600e3).toISOString(), to: new Date(now).toISOString() };
+}
+
+// A range that still shows the reading at `lastIso`: the current one if it
+// already does, else the shortest of Today / 24H / 7D / 30D that does, else
+// (data older than 30 days) the 24 hours ending at that last reading.
+const toLocalInput = (ms) => new Date(ms + EAT_OFFSET_MIN * 60e3).toISOString().slice(0, 16);
+export function fitRange(range, lastIso) {
+  const last = lastIso ? new Date(lastIso).getTime() : NaN;
+  if (Number.isNaN(last)) return range;
+  const covers = (r) => { const x = resolveRange(r); return (!x.from || new Date(x.from).getTime() <= last) && new Date(x.to).getTime() >= last; };
+  if (covers(range)) return range;
+  for (const preset of ['today', '24h', '7d', '30d']) if (covers({ preset })) return { preset };
+  return { preset: 'custom', from: toLocalInput(last - 24 * 3600e3), to: toLocalInput(last + 60e3) };
+}
+
+// Apply fitRange once each time `key` (the device / selection) changes, so a
+// stale device opens on its latest data but the user can still pick freely.
+export function useFitRange(range, setRange, lastIso, key) {
+  const done = useRef(null);
+  useEffect(() => {
+    if (!lastIso || done.current === key) return;
+    done.current = key;
+    const next = fitRange(range, lastIso);
+    if (next !== range) setRange(next);
+  }, [key, lastIso]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 export function qs(obj) {
