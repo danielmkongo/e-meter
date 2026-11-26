@@ -6,6 +6,7 @@ import { initDb } from './db.js';
 import { authRouter } from './routes/auth.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { otaRouter, FIRMWARE_DIR } from './routes/ota.js';
+import { turbinesRouter } from './routes/turbines.js';
 
 const PORT = process.env.PORT || 3001;
 const db = initDb(process.env.DB_PATH || './data/emeter.db');
@@ -32,6 +33,7 @@ app.use('/firmware', express.static(FIRMWARE_DIR));
 app.use('/api/auth',      authRouter(db));
 app.use('/api/dashboard', dashboardRouter(db));
 app.use('/api/ota',       otaRouter(db));
+app.use('/api/turbines',  turbinesRouter(db));
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

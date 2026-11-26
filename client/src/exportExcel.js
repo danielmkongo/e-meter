@@ -1,69 +1,44 @@
 import * as XLSX from 'xlsx';
 import { api } from './api.js';
-import { powerToWatts } from './units.js';
+import { fmtEAT } from './lib/format.js';
+import { qs } from './lib/range.js';
+import { material } from './lib/materials.js';
 
-const EAT_OFFSET = 3 * 60;
+// Power arrives from the API already in watts.
+const genRows = (rows, names) => rows.map(r => ({
+  'Timestamp (EAT)':  fmtEAT(r.timestamp, { seconds: true }),
+  'Turbine':          names[r.turbine_id] || r.turbine_id,
+  'Device key':       r.turbine_id,
+  'Blade material':   material(r.blade || 'unassigned').label,
+  'Firmware':         r.firmware,
+  'Voltage (V)':      r.voltage,
+  'Current (A)':      r.current,
+  'RPM':              r.rpm,
+  'Wind Speed (m/s)': r.wind_speed,
+  'Frequency (Hz)':   r.frequency,
+  'Power (W)':        r.power,
+  'Energy (kWh)':     r.energy,
+  'Temperature (°C)': r.temperature,
+  'Humidity (%)':     r.humidity,
+}));
 
-function toEAT(isoStr) {
-  if (!isoStr) return '';
-  const eat = new Date(new Date(isoStr).getTime() + EAT_OFFSET * 60 * 1000);
-  return eat.toISOString().replace('T', ' ').slice(0, 19) + ' EAT';
-}
+const conRows = (rows) => rows.map(r => ({
+  'Timestamp (EAT)': fmtEAT(r.timestamp, { seconds: true }),
+  'Voltage (V)':     r.voltage,
+  'Current (A)':     r.current,
+  'Power (W)':       r.power,
+  'Energy (kWh)':    r.energy,
+}));
 
-function genRows(rows) {
-  return rows.map(r => ({
-    'Timestamp (EAT)': toEAT(r.timestamp),
-    'Firmware':        r.firmware,
-    'Voltage (V)':     r.voltage,
-    'Current (A)':     r.current,
-    'RPM':             r.rpm,
-    'Wind Speed (m/s)':r.wind_speed,
-    'Frequency (Hz)':  r.frequency,
-    'Power (W)':       r.power,
-    'Energy (kWh)':    r.energy,
-    'Temperature (°C)':r.temperature,
-    'Humidity (%)':    r.humidity,
-  }));
-}
-
-function conRows(rows) {
-  return rows.map(r => ({
-    'Timestamp (EAT)': toEAT(r.timestamp),
-    'Voltage (V)':     r.voltage,
-    'Current (A)':     r.current,
-    'Power (W)':       r.power,
-    'Energy (kWh)':    r.energy,
-  }));
-}
-
-function buildWorkbook(generation, consumption) {
+export async function exportExcel({ from, to, turbines = [], names = {} } = {}) {
+  const data = await api.get('/api/dashboard/export' + qs({ from, to, turbines }));
   const wb = XLSX.utils.book_new();
-
-  const genSheet = XLSX.utils.json_to_sheet(genRows(generation));
-  const conSheet = XLSX.utils.json_to_sheet(conRows(consumption));
-
-  // Column widths
-  genSheet['!cols'] = [{ wch: 22 }, { wch: 12 }, { wch: 11 }, { wch: 11 }, { wch: 8 }, { wch: 15 }, { wch: 13 }, { wch: 10 }, { wch: 11 }, { wch: 15 }, { wch: 12 }];
-  conSheet['!cols'] = [{ wch: 22 }, { wch: 11 }, { wch: 11 }, { wch: 10 }, { wch: 11 }];
-
-  XLSX.utils.book_append_sheet(wb, genSheet,  'Generation');
-  XLSX.utils.book_append_sheet(wb, conSheet,  'Consumption');
-
-  return wb;
-}
-
-function fileName(from, to) {
-  const fmt = iso => iso ? iso.slice(0, 10) : 'all';
-  return `wind-meter-${fmt(from)}-to-${fmt(to)}.xlsx`;
-}
-
-export async function exportExcel({ from, to } = {}) {
-  const qs = new URLSearchParams();
-  if (from) qs.set('from', from);
-  if (to)   qs.set('to',   to);
-  const url = '/api/dashboard/export' + (qs.toString() ? '?' + qs : '');
-
-  const data = await api.get(url);
-  const wb   = buildWorkbook(powerToWatts(data.generation), powerToWatts(data.consumption));
-  XLSX.writeFile(wb, fileName(from, to));
+  const gen = XLSX.utils.json_to_sheet(genRows(data.generation, names));
+  gen['!cols'] = [22, 16, 10, 14, 10, 11, 11, 8, 15, 13, 10, 12, 15, 12].map(wch => ({ wch }));
+  const con = XLSX.utils.json_to_sheet(conRows(data.consumption));
+  con['!cols'] = [22, 11, 11, 10, 12].map(wch => ({ wch }));
+  XLSX.utils.book_append_sheet(wb, gen, 'Generation');
+  XLSX.utils.book_append_sheet(wb, con, 'Consumption');
+  const d = (iso) => iso ? iso.slice(0, 10) : 'all';
+  XLSX.writeFile(wb, `wind-meter-${d(from)}-to-${d(to)}.xlsx`);
 }

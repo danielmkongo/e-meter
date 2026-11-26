@@ -1,100 +1,81 @@
 import { useState } from 'react';
 import { useAuth } from '../AuthContext.jsx';
+import { useTheme } from '../ThemeContext.jsx';
+import WindFarm from '../components/WindFarm.jsx';
+import LogoMark from '../components/Logo.jsx';
+import { MATERIAL_KEYS, material, materialColor } from '../lib/materials.js';
+
+// Decorative trio for the hero: one turbine per blade material.
+const HERO = [
+  { id: 'a', name: 'Aluminium', blade: 'aluminum', online: true, latest: { rpm: 260, wind_speed: 6, power: 38 } },
+  { id: 'b', name: 'PLA',       blade: 'pla',      online: true, latest: { rpm: 190, wind_speed: 6, power: 29 } },
+  { id: 'c', name: 'Carbon',    blade: 'carbon',   online: true, latest: { rpm: 330, wind_speed: 6, power: 45 } },
+];
 
 export default function Login() {
   const { login } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await login(username, password);
-    } catch (err) {
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
+    setError(''); setBusy(true);
+    try { await login(username, password); }
+    catch (err) { setError(err.status === 401 ? 'Wrong username or password.' : err.message); }
+    finally { setBusy(false); }
   }
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 px-4"
-      style={{ backgroundImage: 'var(--page-glow)' }}
-    >
-      <div className="w-full max-w-sm">
-
-        {/* Brand */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-700 dark:bg-emerald-500/10 dark:border dark:border-emerald-500/20 shadow-lg shadow-emerald-900/20 mb-4">
-            <svg className="w-8 h-8 text-white dark:text-emerald-400" fill="none" viewBox="0 0 32 32" stroke="currentColor" strokeWidth={1.5}>
-              <circle cx="16" cy="16" r="2.5" fill="currentColor" stroke="none" />
-              <path d="M16 13.5 C16 13.5 15 8 12 4 C14 7 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
-              <path d="M16 13.5 C16 13.5 11.5 16.5 7 17 C10.5 15.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
-              <path d="M16 13.5 C16 13.5 20.5 10.5 25 11 C21.5 12.5 16 13.5 16 13.5Z" fill="currentColor" stroke="none" />
-              <line x1="16" y1="18.5" x2="16" y2="28" strokeLinecap="round" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Wind Meter</h1>
-          <p className="mt-1 text-sm text-slate-500">Turbine Monitoring System</p>
+    <div className="grid min-h-screen bg-bg lg:grid-cols-[1.25fr_1fr]">
+      <div className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-end">
+        <div className="absolute inset-0">
+          <WindFarm turbines={HERO} selectedId={null} isDark={isDark} allActive framed={false} labels={false} />
         </div>
+        <div className="pointer-events-none absolute inset-x-0 top-0 p-12">
+          <div className="eyebrow !text-accent">Blade Lab</div>
+          <div className="mt-4 flex flex-wrap gap-4">
+            {MATERIAL_KEYS.map(k => (
+              <span key={k} className="inline-flex items-center gap-2 text-sm text-ink/80">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: materialColor(k, isDark) }} />
+                {material(k).label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
 
-        {/* Card */}
-        <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="relative flex items-center justify-center px-6 py-12">
+        <button onClick={toggleTheme} className="absolute right-6 top-6 text-xs text-muted hover:text-ink">
+          {isDark ? 'Light' : 'Dark'} mode
+        </button>
+        <div className="w-full max-w-sm animate-rise">
+          <div className="mb-10 flex items-center gap-2.5">
+            <LogoMark size={44} />
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                required autoFocus
-                className="form-input"
-                placeholder="Kirumbi"
-              />
+              <div className="text-lg font-semibold tracking-tight text-ink">Wind Meter</div>
+              <div className="text-xs text-muted">Turbine monitoring</div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                className="form-input"
-                placeholder="••••••••"
-              />
-            </div>
+          </div>
 
-            {error && (
-              <div className="flex items-center gap-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/60 px-3.5 py-3">
-                <svg className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
-                </svg>
-                <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{error}</p>
-              </div>
-            )}
+          <h2 className="text-2xl font-semibold tracking-tight text-ink">Sign in</h2>
+          <p className="mt-1 text-sm text-muted">Welcome back. The turbines kept spinning.</p>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full mt-2">
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                  Signing in…
-                </span>
-              ) : 'Sign in'}
-            </button>
+          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-muted">Username</span>
+              <input className="input" value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" autoFocus required />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium text-muted">Password</span>
+              <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
+            </label>
+            {error && <div className="rounded-xl border border-bad/30 bg-bad/10 px-3.5 py-2.5 text-sm text-bad">{error}</div>}
+            <button className="btn-primary w-full !py-3" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
           </form>
         </div>
-
-        <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-600">
-          Wind Turbine Monitoring &mdash; v1.0
-        </p>
       </div>
     </div>
   );
