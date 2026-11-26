@@ -11,11 +11,18 @@ export const BLADE_PATH_H =
 
 // Vertical-axis (H-Darrieus) rotor: three upright blades on struts circling the
 // mast. Seen from the side, each blade slides left/right as it goes round.
-const VR = 64;                      // rotor radius
-const VT = -(TOWER_H + 96);         // blade top
-const VB = -(TOWER_H - 36);         // blade bottom
-const VBLADE = `M -5 ${VT + 6} Q -5 ${VT} 0 ${VT} Q 5 ${VT} 5 ${VT + 6} L 5 ${VB - 6} Q 5 ${VB} 0 ${VB} Q -5 ${VB} -5 ${VB - 6} Z`;
-const vPose = (angle, ph) => { const a = (angle + ph) * Math.PI / 180; return { x: VR * Math.sin(a), op: 0.45 + 0.55 * (Math.cos(a) + 1) / 2 }; };
+const VR = 46;                      // rotor radius
+const VT = -(TOWER_H + 62);         // blade top
+const VB = -(TOWER_H - 46);         // blade bottom
+const VS = [VT + 30, VB - 30];      // strut heights
+// Slim airfoil seen from the front: fine rounded ends, widest in the middle.
+const VBLADE = `M 0 ${VT} C 3.6 ${VT + 8}, 4 ${VT + 30}, 4 ${(VT + VB) / 2} C 4 ${VB - 30}, 3.6 ${VB - 8}, 0 ${VB} C -3.6 ${VB - 8}, -4 ${VB - 30}, -4 ${(VT + VB) / 2} C -4 ${VT + 30}, -3.6 ${VT + 8}, 0 ${VT} Z`;
+// Blade position for rotor angle: x across the view, narrower when edge-on,
+// dimmer when on the far side of the mast.
+const vPose = (angle, ph) => {
+  const a = (angle + ph) * Math.PI / 180, c = Math.cos(a);
+  return { x: VR * Math.sin(a), sx: 0.45 + 0.55 * Math.abs(c), op: 0.35 + 0.65 * (c + 1) / 2 };
+};
 
 // Put a rotor at `angle` degrees. One animation loop calls this for every
 // turbine, so it works on the DOM directly instead of re-rendering React.
@@ -24,10 +31,10 @@ export function poseRotor(el, angle) {
   if (el.dataset.vawt == null) { el.setAttribute('transform', `rotate(${angle.toFixed(2)})`); return; }
   for (const c of el.children) {
     if (c.dataset.ph == null) continue;
-    const { x, op } = vPose(angle, Number(c.dataset.ph));
-    c.setAttribute('transform', `translate(${x.toFixed(2)} 0)`);
+    const { x, sx, op } = vPose(angle, Number(c.dataset.ph));
     c.setAttribute('opacity', op.toFixed(2));
-    for (const l of c.querySelectorAll('line')) l.setAttribute('x1', (-x).toFixed(2));
+    for (const l of c.querySelectorAll('line')) l.setAttribute('x2', x.toFixed(2));
+    c.lastElementChild.setAttribute('transform', `translate(${x.toFixed(2)} 0) scale(${sx.toFixed(3)} 1)`);
   }
 }
 
@@ -147,19 +154,23 @@ function VerticalFigure({ uid, blade, active, color, rotorRef, angle, showGlow }
                    className="animate-pulse-ring" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
         </g>
       )}
-      {/* mast, running up through the rotor */}
-      <path d={`M -7 0 L 7 0 L 3.5 ${VT - 8} L -3.5 ${VT - 8} Z`} fill={active ? `url(#${uid}-tower)` : 'var(--ghost)'} />
-      {/* generator housing under the rotor */}
-      <rect x="-11" y={VB + 4} width="22" height="16" rx="5" fill={metal} />
-      {active && <rect x="-11" y={VB + 10.5} width="22" height="3" fill={color} />}
-      <circle cy={VT - 8} r="5" fill={metal} />
-      <g ref={rotorRef} data-vawt="" style={active && showGlow ? { filter: `drop-shadow(0 0 7px ${color}88)` } : undefined}>
+      {/* slim mast, running up through the rotor */}
+      <path d={`M -5.5 0 L 5.5 0 L 2.6 ${VT - 4} L -2.6 ${VT - 4} Z`} fill={active ? `url(#${uid}-tower)` : 'var(--ghost)'} />
+      {/* generator under the rotor */}
+      <rect x="-8" y={VB + 8} width="16" height="20" rx="8" fill={active ? `url(#${uid}-tower)` : 'var(--ghost)'} />
+      {active && <rect x="-8" y={VB + 16.5} width="16" height="2.4" fill={color} />}
+      {/* hub collars where the struts meet the mast */}
+      {VS.map(y => <rect key={y} x="-4.5" y={y - 3} width="9" height="6" rx="2" fill={metal} />)}
+      <circle cy={VT - 4} r="2.6" fill={metal} />
+      <g ref={rotorRef} data-vawt="" style={active && showGlow ? { filter: `drop-shadow(0 0 4px ${color}55)` } : undefined}>
         {[0, 120, 240].map(ph => {
-          const { x, op } = vPose(angle, ph);
+          const { x, sx, op } = vPose(angle, ph);
           return (
-            <g key={ph} data-ph={ph} transform={`translate(${x.toFixed(2)} 0)`} opacity={op.toFixed(2)}>
-              {[VT + 16, VB - 16].map(y => <line key={y} x1={(-x).toFixed(2)} y1={y} x2="0" y2={y} stroke={metal} strokeWidth="3" strokeLinecap="round" />)}
-              <Blade uid={uid} blade={blade} active={active} color={color} d={VBLADE} />
+            <g key={ph} data-ph={ph} opacity={op.toFixed(2)}>
+              {VS.map(y => <line key={y} x1="0" y1={y} x2={x.toFixed(2)} y2={y} stroke={metal} strokeWidth="1.6" strokeLinecap="round" />)}
+              <g transform={`translate(${x.toFixed(2)} 0) scale(${sx.toFixed(3)} 1)`}>
+                <Blade uid={uid} blade={blade} active={active} color={color} d={VBLADE} />
+              </g>
             </g>
           );
         })}
