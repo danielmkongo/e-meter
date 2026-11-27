@@ -9,12 +9,12 @@ const L = BLADE_L;
 export const BLADE_PATH_H =
   `M -3 -6 C -7.5 -22, -6 -${L * 0.55}, -2.2 -${L} Q 0 -${L + 3} 2.2 -${L} C 5 -${L * 0.62}, 10 -${L * 0.28}, 4.5 -6 Z`;
 
-// Vertical-axis rotor: three helical (Gorlov-style) blades on struts around a
+// Vertical-axis rotor: three straight upright blades (H-Darrieus) on struts around a
 // central shaft, seen from slightly above. Each blade is projected in 3D every
 // frame; the parts behind the shaft are drawn behind it and dimmed.
 const VR = 50;                      // rotor radius
 const VK = 0.16;                    // camera tilt: how round the orbit looks
-const VTW = 110;                    // helical twist over the blade height (deg)
+const VTW = 0;                      // blade twist over its height (deg); 0 = straight
 const VT = -(TOWER_H + 70);         // blade top
 const VB = -(TOWER_H - 50);         // blade bottom
 const VSTRUT = [0.1, 0.9];          // strut positions along the blade
