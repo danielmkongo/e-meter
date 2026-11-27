@@ -126,7 +126,7 @@ function TurbineCard({ t, onSaved, isDark }) {
 
 function AddTurbine({ existing, onSaved, isDark }) {
   const nextKey = (() => { for (let i = 1; i < 100; i++) if (!existing.includes(`T${i}`)) return `T${i}`; return ''; })();
-  const [form, setForm] = useState({ id: nextKey, name: '', blade: 'pla', axis: 'horizontal', rotor_diameter: '' });
+  const [form, setForm] = useState({ id: nextKey, name: '', blade: 'natural', axis: 'horizontal', rotor_diameter: '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e?.target ? e.target.value : e }));

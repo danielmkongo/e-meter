@@ -1,7 +1,7 @@
 # Wind Meter · Blade Lab
 
 Live monitoring for a small fleet of wind turbines, built to compare blade
-materials (aluminium, PLA, carbon fibre) under the same wind.
+materials (aluminium, natural fibre, carbon fibre) under the same wind.
 
 - `server/` — Express + SQLite (better-sqlite3) API
 - `client/` — React + Vite + Tailwind + Recharts dashboard

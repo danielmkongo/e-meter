@@ -294,7 +294,7 @@ export default function Compare() {
         <p className="flex items-center gap-2 text-xs text-faint">
           <Icon name="info" className="h-3.5 w-3.5" />
           Colour follows each turbine's blade material
-          {['aluminum', 'pla', 'carbon'].map(k => (
+          {['aluminum', 'natural', 'carbon'].map(k => (
             <span key={k} className="inline-flex items-center gap-1"><MaterialSwatch blade={k} size={8} />{material(k).label}</span>
           ))}
           — line style tells turbines with the same material apart.

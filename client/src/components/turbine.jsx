@@ -9,33 +9,68 @@ const L = BLADE_L;
 export const BLADE_PATH_H =
   `M -3 -6 C -7.5 -22, -6 -${L * 0.55}, -2.2 -${L} Q 0 -${L + 3} 2.2 -${L} C 5 -${L * 0.62}, 10 -${L * 0.28}, 4.5 -6 Z`;
 
-// Vertical-axis (H-Darrieus) rotor: three upright blades on struts circling the
-// mast. Seen from the side, each blade slides left/right as it goes round.
-const VR = 46;                      // rotor radius
-const VT = -(TOWER_H + 62);         // blade top
-const VB = -(TOWER_H - 46);         // blade bottom
-const VS = [VT + 30, VB - 30];      // strut heights
-// Slim airfoil seen from the front: fine rounded ends, widest in the middle.
-const VBLADE = `M 0 ${VT} C 3.6 ${VT + 8}, 4 ${VT + 30}, 4 ${(VT + VB) / 2} C 4 ${VB - 30}, 3.6 ${VB - 8}, 0 ${VB} C -3.6 ${VB - 8}, -4 ${VB - 30}, -4 ${(VT + VB) / 2} C -4 ${VT + 30}, -3.6 ${VT + 8}, 0 ${VT} Z`;
-// Blade position for rotor angle: x across the view, narrower when edge-on,
-// dimmer when on the far side of the mast.
-const vPose = (angle, ph) => {
-  const a = (angle + ph) * Math.PI / 180, c = Math.cos(a);
-  return { x: VR * Math.sin(a), sx: 0.45 + 0.55 * Math.abs(c), op: 0.35 + 0.65 * (c + 1) / 2 };
+// Vertical-axis rotor: three helical (Gorlov-style) blades on struts around a
+// central shaft, seen from slightly above. Each blade is projected in 3D every
+// frame; the parts behind the shaft are drawn behind it and dimmed.
+const VR = 50;                      // rotor radius
+const VK = 0.16;                    // camera tilt: how round the orbit looks
+const VTW = 110;                    // helical twist over the blade height (deg)
+const VT = -(TOWER_H + 70);         // blade top
+const VB = -(TOWER_H - 50);         // blade bottom
+const VSTRUT = [0.1, 0.9];          // strut positions along the blade
+const VN = 28;                      // slices per blade
+const vY = (t) => VB + (VT - VB) * t;
+const vPt = (deg, t) => {
+  const a = deg * Math.PI / 180, z = Math.cos(a);
+  return { x: VR * Math.sin(a), y: vY(t) + VR * VK * z, z, t };
 };
+// Half chord as seen: full face at front/back, thin edge-on at the sides,
+// rounded off at the tips.
+const vHw = (p) => 5.2 * (0.28 + 0.72 * Math.abs(p.z)) * (0.5 + 0.5 * Math.min(1, Math.min(p.t, 1 - p.t) / 0.06));
+const f1 = (n) => n.toFixed(1);
+const ribbon = (pts) => {
+  const l = pts.map(p => `${f1(p.x - vHw(p))} ${f1(p.y)}`);
+  const r = pts.map(p => `${f1(p.x + vHw(p))} ${f1(p.y)}`).reverse();
+  return `M${l.join('L')}L${r.join('L')}Z`;
+};
+// Blade outline split into the part in front of the shaft and the part behind.
+function bladeSides(base) {
+  const out = { f: '', b: '' };
+  let run = [], side = null;
+  for (let i = 0; i <= VN; i++) {
+    const t = i / VN, p = vPt(base + VTW * t, t), s = p.z >= 0 ? 'f' : 'b';
+    if (side && s !== side) {
+      const q = run[run.length - 1], tc = q.t + (t - q.t) * (q.z / (q.z - p.z));
+      const c = vPt(base + VTW * tc, tc);
+      run.push(c); out[side] += ribbon(run); run = [c];
+    }
+    side = s; run.push(p);
+  }
+  out[side] += ribbon(run);
+  return out;
+}
+// Everything that moves, as path data keyed like the data-k attributes below.
+function vGeom(angle) {
+  const g = { sf: '', sb: '' };
+  [0, 120, 240].forEach((ph, i) => {
+    const { f, b } = bladeSides(angle + ph);
+    g[`b${i}f`] = f; g[`b${i}b`] = b;
+    for (const t of VSTRUT) {
+      const p = vPt(angle + ph + VTW * t, t);
+      g[p.z >= 0 ? 'sf' : 'sb'] += `M0 ${f1(vY(t))}L${f1(p.x)} ${f1(p.y)}`;
+    }
+  });
+  return g;
+}
 
 // Put a rotor at `angle` degrees. One animation loop calls this for every
 // turbine, so it works on the DOM directly instead of re-rendering React.
 export function poseRotor(el, angle) {
   if (!el) return;
   if (el.dataset.vawt == null) { el.setAttribute('transform', `rotate(${angle.toFixed(2)})`); return; }
-  for (const c of el.children) {
-    if (c.dataset.ph == null) continue;
-    const { x, sx, op } = vPose(angle, Number(c.dataset.ph));
-    c.setAttribute('opacity', op.toFixed(2));
-    for (const l of c.querySelectorAll('line')) l.setAttribute('x2', x.toFixed(2));
-    c.lastElementChild.setAttribute('transform', `translate(${x.toFixed(2)} 0) scale(${sx.toFixed(3)} 1)`);
-  }
+  const g = vGeom(angle);
+  el._parts ??= [...el.querySelectorAll('[data-k]')].map(n => [n.dataset.k, n.tagName === 'path' ? [n] : [...n.querySelectorAll('path')]]);
+  for (const [k, paths] of el._parts) for (const p of paths) p.setAttribute('d', g[k] || '');
 }
 
 const shade = (hex, amt) => {
@@ -47,7 +82,7 @@ const shade = (hex, amt) => {
 // One <defs> block per scene: blade surface treatments for every material.
 export function BladeDefs({ uid, isDark }) {
   const al = isDark ? material('aluminum').dark : material('aluminum').light;
-  const pl = isDark ? material('pla').dark : material('pla').light;
+  const nf = isDark ? material('natural').dark : material('natural').light;
   return (
     <defs>
       {/* Aluminium: brushed metal, cool tint */}
@@ -58,14 +93,16 @@ export function BladeDefs({ uid, isDark }) {
         <stop offset=".78" stopColor={shade(al, 0.15)} />
         <stop offset="1" stopColor="#6d7f95" />
       </linearGradient>
-      {/* PLA: matte polymer with printed layer lines */}
-      <linearGradient id={`${uid}-pla`} x1="0" x2="1" y1="0" y2="0">
-        <stop offset="0" stopColor={shade(pl, 0.45)} />
-        <stop offset=".45" stopColor={pl} />
-        <stop offset="1" stopColor={shade(pl, -0.35)} />
+      {/* Natural fibre: warm plant-fibre composite with long streaky strands */}
+      <linearGradient id={`${uid}-nf`} x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stopColor={shade(nf, 0.4)} />
+        <stop offset=".5" stopColor={shade(nf, 0.12)} />
+        <stop offset="1" stopColor={shade(nf, -0.3)} />
       </linearGradient>
-      <pattern id={`${uid}-layers`} width="6" height="2.4" patternUnits="userSpaceOnUse">
-        <line x1="0" y1="0.6" x2="6" y2="0.6" stroke="#000" strokeOpacity=".22" strokeWidth=".7" />
+      <pattern id={`${uid}-fib`} width="7" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(4)">
+        <line x1="1" y1="0" x2="1" y2="40" stroke="#3b2410" strokeOpacity=".22" strokeWidth=".6" />
+        <line x1="3.6" y1="0" x2="3.6" y2="26" stroke="#3b2410" strokeOpacity=".14" strokeWidth=".5" />
+        <line x1="5.4" y1="12" x2="5.4" y2="40" stroke="#fff" strokeOpacity=".16" strokeWidth=".5" />
       </pattern>
       {/* Carbon fibre: 2×2 twill weave + clear-coat sheen */}
       <pattern id={`${uid}-cf`} width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -94,10 +131,10 @@ export function BladeDefs({ uid, isDark }) {
 function Blade({ uid, blade, active, color, d: BLADE_PATH = BLADE_PATH_H }) {
   if (!active) return <path d={BLADE_PATH} fill="var(--ghost)" />;
   if (blade === 'aluminum') return <path d={BLADE_PATH} fill={`url(#${uid}-al)`} stroke={color} strokeWidth=".9" />;
-  if (blade === 'pla') return (
+  if (blade === 'natural') return (
     <g>
-      <path d={BLADE_PATH} fill={`url(#${uid}-pla)`} />
-      <path d={BLADE_PATH} fill={`url(#${uid}-layers)`} />
+      <path d={BLADE_PATH} fill={`url(#${uid}-nf)`} stroke={color} strokeWidth=".6" strokeOpacity=".6" />
+      <path d={BLADE_PATH} fill={`url(#${uid}-fib)`} />
     </g>
   );
   if (blade === 'carbon') return (
@@ -145,6 +182,18 @@ export function TurbineFigure({ uid, blade, axis, active, color, rotorRef, angle
 
 function VerticalFigure({ uid, blade, active, color, rotorRef, angle, showGlow }) {
   const metal = active ? 'var(--tower-hi)' : 'var(--ghost)';
+  const body = active ? `url(#${uid}-tower)` : 'var(--ghost)';
+  const g = vGeom(angle);
+  const side = (s) => (
+    <>
+      <path data-k={`s${s}`} d={g[`s${s}`]} fill="none" stroke={metal} strokeWidth="2.2" strokeLinecap="round" />
+      {[0, 1, 2].map(i => (
+        <g key={i} data-k={`b${i}${s}`}>
+          <Blade uid={uid} blade={blade} active={active} color={color} d={g[`b${i}${s}`]} />
+        </g>
+      ))}
+    </>
+  );
   return (
     <g>
       {active && showGlow && (
@@ -154,27 +203,24 @@ function VerticalFigure({ uid, blade, active, color, rotorRef, angle, showGlow }
                    className="animate-pulse-ring" style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
         </g>
       )}
-      {/* slim mast, running up through the rotor */}
-      <path d={`M -5.5 0 L 5.5 0 L 2.6 ${VT - 4} L -2.6 ${VT - 4} Z`} fill={active ? `url(#${uid}-tower)` : 'var(--ghost)'} />
-      {/* generator under the rotor */}
-      <rect x="-8" y={VB + 8} width="16" height="20" rx="8" fill={active ? `url(#${uid}-tower)` : 'var(--ghost)'} />
-      {active && <rect x="-8" y={VB + 16.5} width="16" height="2.4" fill={color} />}
-      {/* hub collars where the struts meet the mast */}
-      {VS.map(y => <rect key={y} x="-4.5" y={y - 3} width="9" height="6" rx="2" fill={metal} />)}
-      <circle cy={VT - 4} r="2.6" fill={metal} />
-      <g ref={rotorRef} data-vawt="" style={active && showGlow ? { filter: `drop-shadow(0 0 4px ${color}55)` } : undefined}>
-        {[0, 120, 240].map(ph => {
-          const { x, sx, op } = vPose(angle, ph);
-          return (
-            <g key={ph} data-ph={ph} opacity={op.toFixed(2)}>
-              {VS.map(y => <line key={y} x1="0" y1={y} x2={x.toFixed(2)} y2={y} stroke={metal} strokeWidth="1.6" strokeLinecap="round" />)}
-              <g transform={`translate(${x.toFixed(2)} 0) scale(${sx.toFixed(3)} 1)`}>
-                <Blade uid={uid} blade={blade} active={active} color={color} d={VBLADE} />
-              </g>
-            </g>
-          );
-        })}
+      {/* tower up to the generator */}
+      <path d={`M -6.5 0 L 6.5 0 L 3.4 ${VB + 20} L -3.4 ${VB + 20} Z`} fill={body} />
+      {/* faint orbit the struts sweep, sells the depth */}
+      {active && showGlow && VSTRUT.map(t => (
+        <ellipse key={t} cx="0" cy={vY(t)} rx={VR} ry={VR * VK} fill="none" stroke={color} strokeOpacity=".22" strokeWidth="1" strokeDasharray="2 3" />
+      ))}
+      <g ref={rotorRef} data-vawt="" style={active && showGlow ? { filter: `drop-shadow(0 0 5px ${color}66)` } : undefined}>
+        <g opacity=".5">{side('b')}</g>
+        {/* shaft, hubs, cap */}
+        <rect x="-2.2" y={VT - 6} width="4.4" height={VB - VT + 14} rx="2.2" fill={metal} />
+        {VSTRUT.map(t => <ellipse key={t} cx="0" cy={vY(t)} rx="6.5" ry="2.6" fill={metal} />)}
+        <ellipse cx="0" cy={VT - 6} rx="4" ry="2" fill={metal} />
+        {side('f')}
       </g>
+      {/* generator */}
+      <rect x="-10" y={VB + 6} width="20" height="20" rx="5" fill={body} />
+      <ellipse cx="0" cy={VB + 6} rx="10" ry="2.6" fill={metal} />
+      {active && <rect x="-10" y={VB + 17} width="20" height="2.4" fill={color} />}
     </g>
   );
 }

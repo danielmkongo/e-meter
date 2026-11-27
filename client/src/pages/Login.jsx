@@ -8,7 +8,7 @@ import { MATERIAL_KEYS, material, materialColor } from '../lib/materials.js';
 // Decorative trio for the hero: one turbine per blade material.
 const HERO = [
   { id: 'a', name: 'Aluminium', blade: 'aluminum', online: true, latest: { rpm: 260, wind_speed: 6, power: 38 } },
-  { id: 'b', name: 'PLA',       blade: 'pla',      online: true, latest: { rpm: 190, wind_speed: 6, power: 29 } },
+  { id: 'b', name: 'Natural',   blade: 'natural',      online: true, latest: { rpm: 190, wind_speed: 6, power: 29 } },
   { id: 'c', name: 'Carbon',    blade: 'carbon',   online: true, latest: { rpm: 330, wind_speed: 6, power: 45 } },
 ];
 

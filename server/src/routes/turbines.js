@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 
-export const BLADE_MATERIALS = ['aluminum', 'pla', 'carbon', 'unassigned'];
+export const BLADE_MATERIALS = ['aluminum', 'natural', 'carbon', 'unassigned'];
 
 function clean(body) {
   const out = {};

@@ -13,7 +13,7 @@ db.exec('DELETE FROM generation; DELETE FROM consumption; DELETE FROM turbines;'
 const turbines = [
   // Like the real site: one anemometer (on T1); environmental sensors vary.
   { id: 'T1', name: 'North Mast', blade: 'aluminum', d: 1.6, cp: 0.30, cutIn: 2.2, tsr: 5.2, pos: 1, wind: true,  temp: true,  hum: true },
-  { id: 'T2', name: 'Ridge Mast', blade: 'pla',      d: 1.6, cp: 0.25, cutIn: 2.6, tsr: 4.6, pos: 2, wind: false, temp: true,  hum: false },
+  { id: 'T2', name: 'Ridge Mast', blade: 'natural',     d: 1.6, cp: 0.25, cutIn: 2.6, tsr: 4.6, pos: 2, wind: false, temp: true,  hum: false },
   { id: 'T3', name: 'East Mast',  blade: 'carbon',   d: 1.6, cp: 0.36, cutIn: 1.9, tsr: 6.1, pos: 3, wind: false, temp: false, hum: false },
 ];
 const insT = db.prepare('INSERT INTO turbines (id, name, blade, rotor_diameter, position) VALUES (?, ?, ?, ?, ?)');

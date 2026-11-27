@@ -7,10 +7,10 @@ export const MATERIALS = {
     dark: '#2f92dd', light: '#1f6fd1',
     blurb: 'Stiff, light alloy. Holds its shape at high RPM.',
   },
-  pla: {
-    key: 'pla', label: 'PLA', short: 'PLA',
-    dark: '#e06a2c', light: '#d9611c',
-    blurb: '3D-printed polymer. Cheap and quick to iterate.',
+  natural: {
+    key: 'natural', label: 'Natural fibre', short: 'NF',
+    dark: '#d98a2b', light: '#b8700f',
+    blurb: 'Plant-fibre composite (flax, sisal, jute). Light and renewable.',
   },
   carbon: {
     key: 'carbon', label: 'Carbon fibre', short: 'CF',
@@ -24,7 +24,7 @@ export const MATERIALS = {
   },
 };
 
-export const MATERIAL_KEYS = ['aluminum', 'pla', 'carbon'];
+export const MATERIAL_KEYS = ['aluminum', 'natural', 'carbon'];
 
 export const material = (k) => MATERIALS[k] || MATERIALS.unassigned;
 export const materialColor = (k, isDark) => (isDark ? material(k).dark : material(k).light);

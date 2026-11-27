@@ -144,6 +144,9 @@ export function initDb(dbPath) {
   if (!db.prepare('PRAGMA table_info(turbines)').all().some(c => c.name === 'axis')) {
     db.exec("ALTER TABLE turbines ADD COLUMN axis TEXT NOT NULL DEFAULT 'horizontal'");
   }
+  // PLA blades were replaced by natural fibre; carry old rows over.
+  db.exec("UPDATE turbines SET blade = 'natural' WHERE blade = 'pla'");
+  db.exec("UPDATE generation SET blade = 'natural' WHERE blade = 'pla'");
 
   const turbineCount = db.prepare('SELECT COUNT(*) AS cnt FROM turbines').get().cnt;
   if (turbineCount === 0) {
